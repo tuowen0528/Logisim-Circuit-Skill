@@ -1,0 +1,776 @@
+{
+  "$comment": "六库组件清单（第一阶段产物）。清单来源为发布产物 PortDump 的 Library.getTools()，并与各 *Library.java 的注册项逐库交叉核对（74=74）。status 的 V/P/U 含义见 references/04-component-inventory.md §2 —— V 仅表示「有实测证据」，不代表该组件属性已枚举完整。",
+  "schema": "logisim-component-index/1",
+  "phase": "1-inventory-only",
+  "target": {
+    "program": "Logisim Evolution",
+    "version": "5.1.0dev",
+    "artifact": "scripts/bin/logisim-evolution-all.jar",
+    "artifact_bytes": 54558590,
+    "artifact_sha256": "b872b0c2d4a46f02676c280c30fbd022b74248b9641a7d3d1db29f9715868515",
+    "source_reference": "logisim-evolution-main/",
+    "rea_artifact_evidence_id": "ev_5424317de0b3263118364b9c4b62197f37ff033ef7ac1ecc10bc45f1fc7710e1",
+    "rea_library_class_evidence_id": "ev_da135f52d75d0b9368f3cbc323ed2601d60427fad6ba6a743791d29c7fe90fbe"
+  },
+  "status_codes": {
+    "V": "verified-measured: at least one attribute/geometry/behaviour measured against the real jar",
+    "P": "partial: used in a verified circuit, but attributes not individually checked",
+    "U": "unstudied: never appears in this project's evidence files"
+  },
+  "coverage": {
+    "components_total": 74,
+    "inventory_confidence": "cross-confirmed: shipped artifact getTools() == source registration, per library",
+    "by_status": {
+      "V": 20,
+      "P": 2,
+      "U": 52
+    },
+    "attribute_enumeration_complete": 0,
+    "attribute_combination_coverage": 0,
+    "note": "Attribute coverage and combination coverage are reported separately and are both currently 0.",
+    "components_measured_at_least_one_attribute": 20,
+    "measured_fraction": "20/74"
+  },
+  "limitation": {
+    "scope_note": "Only these six libraries are in scope. The other seven registered libraries (I/O 17, TTL 69, TCL 2, Base 1, BFH-Praktika 2, Input/Output-Extra 7, Soc 8) are deliberately excluded.",
+    "no_knowledge_entries": "No per-component knowledge entry exists yet. This file is an INVENTORY, not a knowledge base."
+  },
+  "libraries": {
+    "Wiring": {
+      "library_id": "Wiring",
+      "display_name": "Wiring",
+      "file_lib_desc": "#Wiring",
+      "component_count": 14,
+      "source_registration": "8x new AddTool(...) + 6x new FactoryDescription(...)",
+      "components": [
+        {
+          "xml_name": "Splitter",
+          "display_name": "Splitter",
+          "status": "V",
+          "purpose": "Split one bus into named bit groups; the only Wiring component that MERGES nothing - it splits only",
+          "evidence": [
+            "references/00-probe-log.md (fanout rotation by facing; spacing legal 1..9, 40 silently dropped; splits-not-merges)"
+          ]
+        },
+        {
+          "xml_name": "Pin",
+          "display_name": "Pin",
+          "status": "V",
+          "purpose": "Circuit input or output terminal",
+          "evidence": [
+            "references/00-probe-log.md",
+            "references/03-geometry-layout.md"
+          ],
+          "known": [
+            "type defaults to input",
+            "facing moves the box",
+            "samples carry appearance=classic 37/37"
+          ]
+        },
+        {
+          "xml_name": "Probe",
+          "display_name": "Probe",
+          "status": "P",
+          "purpose": "Display the value on a wire without affecting the circuit",
+          "evidence": [
+            "box measured 20x20; no output port"
+          ],
+          "gap": "label behaviour not checked"
+        },
+        {
+          "xml_name": "Tunnel",
+          "display_name": "Tunnel",
+          "status": "V",
+          "purpose": "Connect nets by LABEL across any distance, with no wire",
+          "evidence": [
+            "references/00-probe-log.md sections 32-34"
+          ],
+          "known": [
+            "width defaults to 1 bit",
+            "facing names the wire side and the glyph is drawn opposite",
+            "has no ports at all"
+          ]
+        },
+        {
+          "xml_name": "Pull Resistor",
+          "display_name": "Pull Resistor",
+          "status": "U",
+          "purpose": "Resistive pull-up/pull-down (unknown detail)",
+          "evidence": []
+        },
+        {
+          "xml_name": "Clock",
+          "display_name": "Clock",
+          "status": "P",
+          "purpose": "Oscillating signal source for sequential circuits",
+          "evidence": [
+            "used in every verified sequential circuit"
+          ],
+          "gap": "high/low/phase/facing not checked"
+        },
+        {
+          "xml_name": "POR",
+          "display_name": "Power-on Reset",
+          "status": "U",
+          "purpose": "Power-on reset pulse (unknown detail)",
+          "evidence": []
+        },
+        {
+          "xml_name": "Constant",
+          "display_name": "Constant",
+          "status": "V",
+          "purpose": "Fixed value source",
+          "evidence": [
+            "references/00-probe-log.md"
+          ],
+          "known": [
+            "value defaults to TRUE when omitted"
+          ]
+        },
+        {
+          "xml_name": "Power",
+          "display_name": "Power",
+          "status": "U",
+          "purpose": "Constant 1 (logic high)",
+          "evidence": []
+        },
+        {
+          "xml_name": "Ground",
+          "display_name": "Ground",
+          "status": "U",
+          "purpose": "Constant 0 (logic low)",
+          "evidence": []
+        },
+        {
+          "xml_name": "NoConnect",
+          "display_name": "Do not connect",
+          "status": "U",
+          "purpose": "Explicitly mark a point as unconnected",
+          "evidence": [],
+          "note": "XML name is NoConnect, NOT the display name 'Do not connect'"
+        },
+        {
+          "xml_name": "Transistor",
+          "display_name": "Transistor",
+          "status": "U",
+          "purpose": "MOS transistor switch",
+          "evidence": []
+        },
+        {
+          "xml_name": "Transmission Gate",
+          "display_name": "Transmission Gate",
+          "status": "U",
+          "purpose": "Bidirectional switch",
+          "evidence": []
+        },
+        {
+          "xml_name": "Bit Extender",
+          "display_name": "Bit Extender",
+          "status": "U",
+          "purpose": "Change a bus width",
+          "evidence": []
+        }
+      ]
+    },
+    "Gates": {
+      "library_id": "Gates",
+      "display_name": "Gates",
+      "file_lib_desc": "#Gates",
+      "component_count": 13,
+      "source_registration": "13x new AddTool(...)",
+      "components": [
+        {
+          "xml_name": "NOT Gate",
+          "display_name": "NOT Gate",
+          "status": "V",
+          "purpose": "Inverter",
+          "evidence": [
+            "references/00-probe-log.md"
+          ],
+          "known": [
+            "output at loc, input at loc.x-30, box (-30,-10,30,20)"
+          ]
+        },
+        {
+          "xml_name": "Buffer",
+          "display_name": "Buffer",
+          "status": "V",
+          "purpose": "Non-inverting driver",
+          "evidence": [
+            "references/00-probe-log.md"
+          ],
+          "known": [
+            "inputs (-50,-20)/(+20), output at loc"
+          ]
+        },
+        {
+          "xml_name": "AND Gate",
+          "display_name": "AND Gate",
+          "status": "V",
+          "purpose": "Logical AND",
+          "evidence": [
+            "references/00-probe-log.md"
+          ],
+          "known": [
+            "size 50 default -> inputs (-50,-+20); size=30 -> (-30,-+10); box 50x50"
+          ]
+        },
+        {
+          "xml_name": "OR Gate",
+          "display_name": "OR Gate",
+          "status": "V",
+          "purpose": "Logical OR",
+          "evidence": [
+            "references/00-probe-log.md"
+          ],
+          "known": [
+            "same geometry as AND"
+          ]
+        },
+        {
+          "xml_name": "NAND Gate",
+          "display_name": "NAND Gate",
+          "status": "V",
+          "purpose": "Logical NAND",
+          "evidence": [
+            "references/00-probe-log.md"
+          ],
+          "known": [
+            "same geometry as AND"
+          ]
+        },
+        {
+          "xml_name": "NOR Gate",
+          "display_name": "NOR Gate",
+          "status": "V",
+          "purpose": "Logical NOR",
+          "evidence": [
+            "references/00-probe-log.md"
+          ],
+          "known": [
+            "same geometry as AND"
+          ]
+        },
+        {
+          "xml_name": "XOR Gate",
+          "display_name": "XOR Gate",
+          "status": "V",
+          "purpose": "Logical XOR",
+          "evidence": [
+            "references/00-probe-log.md"
+          ],
+          "known": [
+            "box 60x50, inputs (-60,-+20)"
+          ]
+        },
+        {
+          "xml_name": "XNOR Gate",
+          "display_name": "XNOR Gate",
+          "status": "V",
+          "purpose": "Logical XNOR",
+          "evidence": [
+            "references/00-probe-log.md"
+          ],
+          "known": [
+            "same geometry as XOR"
+          ]
+        },
+        {
+          "xml_name": "Odd Parity",
+          "display_name": "Odd Parity",
+          "status": "U",
+          "purpose": "Odd parity of inputs",
+          "evidence": []
+        },
+        {
+          "xml_name": "Even Parity",
+          "display_name": "Even Parity",
+          "status": "U",
+          "purpose": "Even parity of inputs",
+          "evidence": []
+        },
+        {
+          "xml_name": "Controlled Buffer",
+          "display_name": "Controlled Buffer",
+          "status": "U",
+          "purpose": "Tri-state buffer",
+          "evidence": []
+        },
+        {
+          "xml_name": "Controlled Inverter",
+          "display_name": "Controlled Inverter",
+          "status": "U",
+          "purpose": "Tri-state inverter",
+          "evidence": []
+        },
+        {
+          "xml_name": "PLA",
+          "display_name": "PLA",
+          "status": "U",
+          "purpose": "Programmable logic array with an editable truth table",
+          "evidence": []
+        }
+      ]
+    },
+    "Plexers": {
+      "library_id": "Plexers",
+      "display_name": "Plexers",
+      "file_lib_desc": "#Plexers",
+      "component_count": 5,
+      "source_registration": "5x new FactoryDescription(...)",
+      "components": [
+        {
+          "xml_name": "Multiplexer",
+          "display_name": "Multiplexer",
+          "status": "V",
+          "purpose": "Select one of 2^select data inputs",
+          "evidence": [
+            "references/00-probe-log.md"
+          ],
+          "known": [
+            "port geometry changes NON-uniformly with select: select=1 -> data at x-30, first dy -10, step 20; select=2 -> x-40, -20, step 10; select=3 -> x-40, -40, step 10; select pin always (x-20,y+20); box 40x60"
+          ]
+        },
+        {
+          "xml_name": "Demultiplexer",
+          "display_name": "Demultiplexer",
+          "status": "U",
+          "purpose": "Route one input to one of 2^select outputs",
+          "evidence": []
+        },
+        {
+          "xml_name": "Decoder",
+          "display_name": "Decoder",
+          "status": "V",
+          "purpose": "Assert one of 2^select outputs",
+          "evidence": [
+            "references/00-probe-log.md"
+          ],
+          "known": [
+            "outputs evenly spaced 20px, last at loc.y-10"
+          ]
+        },
+        {
+          "xml_name": "Priority Encoder",
+          "display_name": "Priority Encoder",
+          "status": "U",
+          "purpose": "Encode the highest-priority asserted input",
+          "evidence": []
+        },
+        {
+          "xml_name": "BitSelector",
+          "display_name": "Bit Selector",
+          "status": "U",
+          "purpose": "Extract a bit group from a bus",
+          "evidence": [],
+          "note": "XML name has no space: BitSelector"
+        }
+      ]
+    },
+    "Arithmetic": {
+      "library_id": "Arithmetic",
+      "display_name": "Arithmetic",
+      "file_lib_desc": "#Arithmetic",
+      "component_count": 13,
+      "source_registration": "13x new FactoryDescription(...)",
+      "components": [
+        {
+          "xml_name": "Adder",
+          "display_name": "Adder",
+          "status": "V",
+          "purpose": "Ripple-carry addition with carry in/out",
+          "evidence": [
+            "examples/adder4/adder4.circ (512/512)",
+            "references/00-probe-log.md"
+          ],
+          "known": [
+            "A(-40,-10) B(-40,+10) Cin(-20,-20) Sum(loc) Cout(-20,+20)",
+            "width defaults to 8 bits",
+            "Cin/Cout always 1 bit",
+            "has no mode attribute"
+          ]
+        },
+        {
+          "xml_name": "Subtractor",
+          "display_name": "Subtractor",
+          "status": "U",
+          "purpose": "Subtraction with borrow",
+          "evidence": []
+        },
+        {
+          "xml_name": "Multiplier",
+          "display_name": "Multiplier",
+          "status": "U",
+          "purpose": "Multiplication",
+          "evidence": []
+        },
+        {
+          "xml_name": "Divider",
+          "display_name": "Divider",
+          "status": "U",
+          "purpose": "Division with remainder",
+          "evidence": []
+        },
+        {
+          "xml_name": "Negator",
+          "display_name": "Negator",
+          "status": "U",
+          "purpose": "Two's-complement negation",
+          "evidence": []
+        },
+        {
+          "xml_name": "Exponentiator",
+          "display_name": "Exponentiator",
+          "status": "U",
+          "purpose": "Exponentiation",
+          "evidence": []
+        },
+        {
+          "xml_name": "SquareRoot",
+          "display_name": "Square Root",
+          "status": "U",
+          "purpose": "Integer square root",
+          "evidence": [],
+          "note": "XML name has no space"
+        },
+        {
+          "xml_name": "Absolute",
+          "display_name": "Absolute",
+          "status": "U",
+          "purpose": "Absolute value",
+          "evidence": []
+        },
+        {
+          "xml_name": "Comparator",
+          "display_name": "Comparator",
+          "status": "V",
+          "purpose": "Magnitude comparison",
+          "evidence": [
+            "tests/specs/rtl/cmp2.json (16/16)",
+            "references/00-probe-log.md"
+          ],
+          "known": [
+            "A(-40,-10) B(-40,+10) >(0,-10) =(0,0) <(0,+10)",
+            "mode DEFAULTS TO SIGNED (twosComplement)"
+          ]
+        },
+        {
+          "xml_name": "MinMax",
+          "display_name": "Minimum and Maximum",
+          "status": "U",
+          "purpose": "Minimum or maximum of two values",
+          "evidence": []
+        },
+        {
+          "xml_name": "Shifter",
+          "display_name": "Shifter",
+          "status": "U",
+          "purpose": "Barrel shift",
+          "evidence": []
+        },
+        {
+          "xml_name": "BitAdder",
+          "display_name": "Bit Adder",
+          "status": "U",
+          "purpose": "Count the set bits of a bus",
+          "evidence": [],
+          "note": "XML name has no space"
+        },
+        {
+          "xml_name": "BitFinder",
+          "display_name": "Bit Finder",
+          "status": "U",
+          "purpose": "Locate a bit pattern in a bus",
+          "evidence": [],
+          "note": "XML name has no space"
+        }
+      ]
+    },
+    "FPArithmetic": {
+      "library_id": "FPArithmetic",
+      "display_name": "Floating Point Arithmetic",
+      "file_lib_desc": "#FPArithmetic",
+      "component_count": 18,
+      "source_registration": "18x new FactoryDescription(...)",
+      "source_package": "com/cburch/logisim/std/arith/floating/",
+      "warning": "ALL 18 are unstudied. The floating-point FORMAT ITSELF is unknown. Do not assume IEEE-754 rules hold for every operation until measured.",
+      "components": [
+        {
+          "xml_name": "FPConstant",
+          "display_name": "Floating Point Constant",
+          "status": "U",
+          "purpose": "Floating-point literal source",
+          "evidence": []
+        },
+        {
+          "xml_name": "FPAdder",
+          "display_name": "Floating Point Adder",
+          "status": "U",
+          "purpose": "Floating-point addition",
+          "evidence": []
+        },
+        {
+          "xml_name": "FPSubtractor",
+          "display_name": "Floating Point Subtractor",
+          "status": "U",
+          "purpose": "Floating-point subtraction",
+          "evidence": []
+        },
+        {
+          "xml_name": "FPMultiplier",
+          "display_name": "Floating Point Multiplier",
+          "status": "U",
+          "purpose": "Floating-point multiplication",
+          "evidence": []
+        },
+        {
+          "xml_name": "FPDivider",
+          "display_name": "Floating Point Divider",
+          "status": "U",
+          "purpose": "Floating-point division",
+          "evidence": []
+        },
+        {
+          "xml_name": "FPNegator",
+          "display_name": "Floating Point Negator",
+          "status": "U",
+          "purpose": "Floating-point sign negation",
+          "evidence": []
+        },
+        {
+          "xml_name": "FPExponentiator",
+          "display_name": "Floating Point Exponentiator",
+          "status": "U",
+          "purpose": "Floating-point exponentiation",
+          "evidence": []
+        },
+        {
+          "xml_name": "FPLogarithm",
+          "display_name": "Floating Point Logarithm",
+          "status": "U",
+          "purpose": "Floating-point logarithm",
+          "evidence": []
+        },
+        {
+          "xml_name": "FPSquareRoot",
+          "display_name": "Floating Point Square Root",
+          "status": "U",
+          "purpose": "Floating-point square root",
+          "evidence": []
+        },
+        {
+          "xml_name": "FPAbsolute",
+          "display_name": "Floating Point Absolute",
+          "status": "U",
+          "purpose": "Floating-point absolute value",
+          "evidence": []
+        },
+        {
+          "xml_name": "FPComparator",
+          "display_name": "Floating Point Comparator",
+          "status": "U",
+          "purpose": "Floating-point comparison",
+          "evidence": []
+        },
+        {
+          "xml_name": "FPMinMax",
+          "display_name": "Floating Point Minimum and Maximum",
+          "status": "U",
+          "purpose": "Floating-point min/max",
+          "evidence": []
+        },
+        {
+          "xml_name": "FPRound",
+          "display_name": "Floating Point Round",
+          "status": "U",
+          "purpose": "Rounding to integer / precision",
+          "evidence": []
+        },
+        {
+          "xml_name": "FPTrigonometry",
+          "display_name": "Floating Point Trigonometry",
+          "status": "U",
+          "purpose": "Trigonometric functions",
+          "evidence": []
+        },
+        {
+          "xml_name": "FPClassificator",
+          "display_name": "Floating Point Classificator",
+          "status": "U",
+          "purpose": "Classify a floating-point value (NaN/Inf/normal/...)",
+          "evidence": []
+        },
+        {
+          "xml_name": "FPToFP",
+          "display_name": "Floating Point Converter",
+          "status": "U",
+          "purpose": "Convert between floating-point formats",
+          "evidence": []
+        },
+        {
+          "xml_name": "FPToInt",
+          "display_name": "Floating Point to Integer",
+          "status": "U",
+          "purpose": "Floating point to integer conversion",
+          "evidence": []
+        },
+        {
+          "xml_name": "IntToFP",
+          "display_name": "Integer to Floating Point",
+          "status": "U",
+          "purpose": "Integer to floating point conversion",
+          "evidence": []
+        }
+      ]
+    },
+    "Memory": {
+      "library_id": "Memory",
+      "display_name": "Memory",
+      "file_lib_desc": "#Memory",
+      "component_count": 11,
+      "source_registration": "11x new FactoryDescription(...)",
+      "components": [
+        {
+          "xml_name": "D Flip-Flop",
+          "display_name": "D Flip-Flop",
+          "status": "V",
+          "purpose": "Edge-triggered single-bit storage",
+          "evidence": [
+            "references/00-probe-log.md",
+            "examples/generated/seq_div2.circ"
+          ],
+          "known": [
+            "D/T(-10,+10) CK(-10,+50) Q(+50,+10) QB(+50,+50) PRESET(+20,0) RESET(+20,+60)",
+            "box (-10,0,60,60)"
+          ]
+        },
+        {
+          "xml_name": "T Flip-Flop",
+          "display_name": "T Flip-Flop",
+          "status": "V",
+          "purpose": "Edge-triggered toggle storage",
+          "evidence": [
+            "tests/specs/seq/seq_tff.json"
+          ],
+          "known": [
+            "same port layout as D Flip-Flop"
+          ]
+        },
+        {
+          "xml_name": "J-K Flip-Flop",
+          "display_name": "J-K Flip-Flop",
+          "status": "U",
+          "purpose": "Edge-triggered JK storage",
+          "evidence": [],
+          "note": "XML NAME HAS HYPHENS. seqmodel.py wrongly emits 'JK Flip-Flop', which Logisim SILENTLY DROPS - measured."
+        },
+        {
+          "xml_name": "S-R Flip-Flop",
+          "display_name": "S-R Flip-Flop",
+          "status": "U",
+          "purpose": "Edge-triggered SR storage",
+          "evidence": [],
+          "note": "XML NAME HAS HYPHENS. seqmodel.py wrongly emits 'SR Flip-Flop', which Logisim SILENTLY DROPS - measured."
+        },
+        {
+          "xml_name": "Register",
+          "display_name": "Register",
+          "status": "V",
+          "purpose": "Multi-bit edge-triggered storage with enable and clear",
+          "evidence": [
+            "tests/specs/seq/seq_reg8_hold.json",
+            "tests/specs/seq/seq_reg4_load.json",
+            "tests/specs/seq/seq_accum4.json"
+          ],
+          "known": [
+            "Q(+60,+30) D(0,+30) CLK(0,+70) EN(0,+50) CLR(+30,+90)",
+            "box (0,0,60,90)",
+            "CLR takes priority over load",
+            "power-up state UNDEFINED",
+            "trigger defaults to rising"
+          ]
+        },
+        {
+          "xml_name": "Counter",
+          "display_name": "Counter",
+          "status": "U",
+          "purpose": "Up/down counter",
+          "evidence": []
+        },
+        {
+          "xml_name": "Shift Register",
+          "display_name": "Shift Register",
+          "status": "U",
+          "purpose": "Serial/parallel shift storage",
+          "evidence": []
+        },
+        {
+          "xml_name": "Random",
+          "display_name": "Random Generator",
+          "status": "U",
+          "purpose": "Pseudo-random value generator",
+          "evidence": [],
+          "note": "XML name is Random, not the display name"
+        },
+        {
+          "xml_name": "RAM",
+          "display_name": "RAM",
+          "status": "V",
+          "purpose": "Addressable read/write memory",
+          "evidence": [
+            "references/00-probe-log.md"
+          ],
+          "known": [
+            "A(0,10) WE(0,50) OE(0,60) CK(0,70) Din(0,90) Dout(+240,+90)",
+            "WE sits above OE when facing east",
+            "WE is PROVEN to gate storage",
+            ".circ does NOT store contents"
+          ]
+        },
+        {
+          "xml_name": "ROM",
+          "display_name": "ROM",
+          "status": "U",
+          "purpose": "Read-only memory loaded from an external hex file",
+          "evidence": []
+        },
+        {
+          "xml_name": "DualRAM",
+          "display_name": "Dual Port RAM",
+          "status": "U",
+          "purpose": "Two-port addressable memory",
+          "evidence": [],
+          "note": "XML name is DualRAM, not the display name"
+        }
+      ]
+    }
+  },
+  "naming_traps": {
+    "$comment": "A component name that does not match the XML name is SILENTLY DROPPED by the loader. These are the measured XML-vs-display differences in the six libraries.",
+    "use_xml_name_not_display": {
+      "NoConnect": "Do not connect",
+      "BitSelector": "Bit Selector",
+      "SquareRoot": "Square Root",
+      "MinMax": "Minimum and Maximum",
+      "BitAdder": "Bit Adder",
+      "BitFinder": "Bit Finder",
+      "Random": "Random Generator",
+      "DualRAM": "Dual Port RAM",
+      "POR": "Power-on Reset"
+    },
+    "hyphenated_names_the_project_currently_gets_wrong": {
+      "J-K Flip-Flop": "seqmodel.py emits 'JK Flip-Flop' -> silently dropped (measured)",
+      "S-R Flip-Flop": "seqmodel.py emits 'SR Flip-Flop' -> silently dropped (measured)"
+    }
+  },
+  "deferred_to_later_phases": [
+    "Per-component attribute enumeration (0 of 74 done)",
+    "Per-component knowledge entries (0 of 74 done)",
+    "Pin/port coordinates under rotation and mirroring for every component",
+    "Attribute serialisation forms in .circ for every component",
+    "Illegal / missing / incompatible value handling for every component",
+    "Attribute combination tests (boundary, pairwise, key interactions)",
+    "Behavioural verification per library (exhaustive where feasible)",
+    "Wiring the knowledge base into SKILL.md retrieval"
+  ]
+}

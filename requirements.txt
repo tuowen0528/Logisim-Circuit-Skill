@@ -1,0 +1,3 @@
+# This package has NO third-party Python dependencies - everything uses the standard library.
+# Python 3.11+ is required. Java 17+ and Logisim Evolution 5.1.0dev are needed to run the
+# real-simulation verification; see docs/installation.md.
