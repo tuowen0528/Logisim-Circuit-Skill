@@ -88,3 +88,34 @@ two drivers on one net, or a wire that ends on someone else's port.
 
 Tests that need the JAR skip themselves when it is absent. Install the JAR, or set
 `LOGISIM_JAR`, to run them. They are **skipped**, never silently passed.
+
+## The Tunnel glyph is drawn on top of the component
+
+`facing` is set the wrong way round. It is purely cosmetic — Tunnels connect by label, so the circuit
+still simulates correctly — which is why only `audit_visual.py` catches it.
+
+Ask **where the neighbour is** and point the glyph away from it:
+
+| Tunnel sits on | neighbour | use |
+|---|---|---|
+| a gate input | right | `east` |
+| an output Pin (its body extends LEFT) | left | `west` |
+| a driver stub right of a gate output | left | `west` |
+
+Measured: `west` draws the body to the **RIGHT** of the port, `east` to the **LEFT**. The names are
+inverted relative to what they draw — which is exactly why the rule is stated as "away from the
+neighbour" instead of as a table to memorise. `rtllib.py`/`circmodel.py` do this through
+`tunnel_facing(neighbour_on_the_right)`.
+
+## The schematic is unreadable but it simulates fine
+
+Run the visual audit:
+
+```bash
+python scripts/py/audit_visual.py mycircuit.circ
+```
+
+`OVERLAP` and `LABEL-CLASH` are real defects. The usual cause is a long net name: a Tunnel glyph is
+`8*len(label)+10` px wide, so `zero` and `n_mulhi` are very different widths and two Tunnels 10 px
+apart will collide once their labels are long enough. Shorten labels or space the Tunnels further
+apart along the column.

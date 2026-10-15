@@ -25,7 +25,7 @@ cost real time during development.
 
 MEASURED COMPONENT PORTS (SamplePorts ground truth, not guessed)
 
-  D/T/JK/SR Flip-Flop, appearance logisim_evolution:
+  D/T/JK/S-R Flip-Flop, appearance logisim_evolution:
       D (or T / J,K / S,R)  (-10,+10)
       CK                    (-10,+50)
       Q                     (+50,+10)
@@ -63,17 +63,12 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import circmodel as cm
 import project_header as _ph  # noqa: E402
 
-
+# circmodel already made stdout UTF-8 safe; wrapping it AGAIN here closes the shared buffer (the
 # second wrapper's finalizer closes it), which surfaces as "I/O operation on closed file" and made
 # the test module fail to import. Reuse the one-shot helper instead.
 cm.ensure_utf8_stdout()
 
-# --- Logisim JAR location (imports placed here so the order cannot break) ---
-import os
-import pathlib
-_LOCAL_JAR = pathlib.Path(__file__).resolve().parents[1] / "bin" / "logisim-evolution-all.jar"
-
-JAR = pathlib.Path(os.environ.get("LOGISIM_JAR") or str(_LOCAL_JAR))
+JAR = pathlib.Path(__file__).resolve().parents[1] / "bin" / "logisim-evolution-all.jar"
 WIRING_LIB, GATES_LIB, MEMORY_LIB, ARITH_LIB = 0, 1, 5, 3
 
 # ----------------------------------------------------------------------------------------------
@@ -81,7 +76,7 @@ WIRING_LIB, GATES_LIB, MEMORY_LIB, ARITH_LIB = 0, 1, 5, 3
 # ----------------------------------------------------------------------------------------------
 
 FF_NAMES = {
-    "DFF": "D Flip-Flop", "TFF": "T Flip-Flop", "JKFF": "JK Flip-Flop", "SRFF": "SR Flip-Flop",
+    "DFF": "D Flip-Flop", "TFF": "T Flip-Flop", "JKFF": "J-K Flip-Flop", "SRFF": "S-R Flip-Flop",
 }
 # (name, width_of_data_line, data_port_offset)
 FF_PORTS = {
@@ -235,8 +230,8 @@ class Part:
 
     @property
     def xml_name(self) -> str:
-        return {"DFF": "D Flip-Flop", "TFF": "T Flip-Flop", "JKFF": "JK Flip-Flop",
-                "SRFF": "SR Flip-Flop", "REG": "Register", "CONST": "Constant",
+        return {"DFF": "D Flip-Flop", "TFF": "T Flip-Flop", "JKFF": "J-K Flip-Flop",
+                "SRFF": "S-R Flip-Flop", "REG": "Register", "CONST": "Constant",
                 "CLOCK": "Clock", "PROBE": "Probe", "TUNNEL": "Tunnel", "PIN": "Pin",
                 "NOT": "NOT Gate", "ADDER": "Adder", "RAM": "RAM"}[self.kind]
 
@@ -694,6 +689,26 @@ def _on_segment(p: Tuple[int, int], seg) -> bool:
 # ----------------------------------------------------------------------------------------------
 # Serialisation
 # ----------------------------------------------------------------------------------------------
+
+def tunnel_facing(neighbour_on_the_right: bool) -> str:
+    """Which `facing` draws a Tunnel glyph AWAY from its neighbour.
+
+    MEASURED on the shipped jar (see `geom.py show Tunnel facing=... label=...`):
+
+        facing="west"   box = loc + (   0, -11)   width 8*len(label)+10   -> glyph extends RIGHT
+        facing="east"   box = loc + (-w,  -11)                           -> glyph extends LEFT
+
+    The names read backwards, which is why choosing a constant per role kept regressing: the right
+    answer depends on WHERE THE NEIGHBOUR IS, not on whether the Tunnel drives or receives.
+
+        neighbour on the RIGHT  ->  "east"   (glyph extends LEFT, into free space)
+        neighbour on the LEFT   ->  "west"   (glyph extends RIGHT, into free space)
+
+    A consumer Tunnel asks about the component it sits on: a gate is to its RIGHT, an output Pin (whose
+    own body extends LEFT) is to its LEFT. A driver Tunnel always has its source on the LEFT.
+    """
+    return "east" if neighbour_on_the_right else "west"
+
 
 def to_xml(c: SeqCircuit) -> str:
     L = ['<?xml version="1.0" encoding="UTF-8" standalone="no"?>',

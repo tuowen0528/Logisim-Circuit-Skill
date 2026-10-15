@@ -601,6 +601,26 @@ def _emitted_coords(circuit: Circuit, label: str, net: Net):
 # Serialisation
 # --------------------------------------------------------------------------------------
 
+def tunnel_facing(neighbour_on_the_right: bool) -> str:
+    """Which `facing` draws a Tunnel glyph AWAY from its neighbour.
+
+    MEASURED on the shipped jar (see `geom.py show Tunnel facing=... label=...`):
+
+        facing="west"   box = loc + (   0, -11)   width 8*len(label)+10   -> glyph extends RIGHT
+        facing="east"   box = loc + (-w,  -11)                           -> glyph extends LEFT
+
+    The names read backwards, which is why choosing a constant per role kept regressing: the right
+    answer depends on WHERE THE NEIGHBOUR IS, not on whether the Tunnel drives or receives.
+
+        neighbour on the RIGHT  ->  "east"   (glyph extends LEFT, into free space)
+        neighbour on the LEFT   ->  "west"   (glyph extends RIGHT, into free space)
+
+    A consumer Tunnel asks about the component it sits on: a gate is to its RIGHT, an output Pin (whose
+    own body extends LEFT) is to its LEFT. A driver Tunnel always has its source on the LEFT.
+    """
+    return "east" if neighbour_on_the_right else "west"
+
+
 def to_xml(circuit: Circuit) -> str:
     """Emit valid `.circ` XML. Tunnels carry every net; wires are short port->tunnel stubs."""
     L: List[str] = []
@@ -677,10 +697,11 @@ def to_xml(circuit: Circuit) -> str:
                 g = next(g for g in circuit.gates if g.ref == ref)
                 sink = g.port_ins()[idx]
             # The consumer tunnel sits exactly ON the sink port so no routing wire is needed.
-            # Its facing must point the glyph AWAY from the component on its right - see the
-            # measured semantics on SINK_FACING. This was "west", which ran the glyph straight
-            # into the gate body and produced the overlap the user reported.
-            tunnel(label, sink, facing=SINK_FACING, width=net_width)
+            # Its direction comes from where the neighbour is: a gate input is to the RIGHT, but an
+            # output Pin's own body extends LEFT, so the glyph must go right there. Using one
+            # constant for both is what put the glyph on top of the output pin.
+            neighbour_right = (kind != "pin")
+            tunnel(label, sink, facing=tunnel_facing(neighbour_right), width=net_width)
 
     L.append('  </circuit>')
     L.append('</project>')

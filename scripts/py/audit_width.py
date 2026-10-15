@@ -219,7 +219,7 @@ def analyse(path: pathlib.Path) -> dict:
                                           (loc[0] + 30, loc[1] + 90), 1))
                 endpoints.append(Endpoint("rtl", f"{name}@{loc}", "EN", (loc[0], loc[1] + 50), 1))
                 continue
-            if name in ("D Flip-Flop", "T Flip-Flop", "JK Flip-Flop", "SR Flip-Flop"):
+            if name in ("D Flip-Flop", "T Flip-Flop", "J-K Flip-Flop", "S-R Flip-Flop"):
                 w = int(attrs.get("width", 1))
                 endpoints.append(Endpoint("rtl", f"{name}@{loc}", "Q", (loc[0] + 50, loc[1] + 10), w))
                 for port, (dx, dy), pw in (("D", (-10, 10), w), ("CK", (-10, 50), 1),

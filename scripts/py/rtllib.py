@@ -337,6 +337,26 @@ def _port_names(p: Part) -> List[str]:
     return []
 
 
+def tunnel_facing(neighbour_on_the_right: bool) -> str:
+    """Which `facing` draws a Tunnel glyph AWAY from its neighbour.
+
+    MEASURED on the shipped jar (see `geom.py show Tunnel facing=... label=...`):
+
+        facing="west"   box = loc + (   0, -11)   width 8*len(label)+10   -> glyph extends RIGHT
+        facing="east"   box = loc + (-w,  -11)                           -> glyph extends LEFT
+
+    The names read backwards, which is why choosing a constant per role kept regressing: the right
+    answer depends on WHERE THE NEIGHBOUR IS, not on whether the Tunnel drives or receives.
+
+        neighbour on the RIGHT  ->  "east"   (glyph extends LEFT, into free space)
+        neighbour on the LEFT   ->  "west"   (glyph extends RIGHT, into free space)
+
+    A consumer Tunnel asks about the component it sits on: a gate is to its RIGHT, an output Pin (whose
+    own body extends LEFT) is to its LEFT. A driver Tunnel always has its source on the LEFT.
+    """
+    return "east" if neighbour_on_the_right else "west"
+
+
 class RtlBuilder:
     """Build a circuit from a spec with gates + RTL components, nets as named tunnels.
 
@@ -696,10 +716,13 @@ class RtlBuilder:
             L.append(self._tunnel_xml(net, dt, nw, facing=TUNNEL_DRIVER_FACING))
             for (uref, uport) in d["use"]:
                 sink = self.coord(uref, uport)
-                # facing points the glyph AWAY from the component on the right. See the measured
-                # semantics on TUNNEL_SINK_FACING: "west" draws the body to the RIGHT, straight
-                # into the component whose input port the tunnel sits on.
-                L.append(self._tunnel_xml(net, sink, nw, facing=TUNNEL_SINK_FACING))
+                # Where is the neighbour? A gate input port sits on a gate to the RIGHT of the
+                # tunnel; an output Pin sits on a pin whose own body extends LEFT. `tunnel_facing`
+                # turns that into the correct direction so the glyph never lands on the component.
+                up = self.by_ref[uref]
+                neighbour_right = not (up.kind == "PIN" and up.attrs.get("pin_type") == "output")
+                L.append(self._tunnel_xml(net, sink, nw,
+                                          facing=tunnel_facing(neighbour_right)))
         L += ['  </circuit>', '</project>']
         return "\n".join(L) + "\n"
 

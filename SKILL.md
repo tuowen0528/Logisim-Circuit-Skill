@@ -53,6 +53,31 @@ Full procedures: `references/workflows/{analyze,generate,verify,repair,sequentia
 | Every measured fact + the experiment behind it | `references/evidence-log.md` |
 | Naming traps and library rules | `references/component-index.json` |
 
+### Visual / GUI layout audit
+
+Electrical checks cannot see the drawing. A tunnel-first schematic is connected entirely by labels, so
+a wall of correctly-wired Tunnels can still be unreadable: glyphs overlapping, labels running into each
+other, a Tunnel drawn across the component it is attached to.
+
+```bash
+python scripts/py/audit_visual.py mycircuit.circ
+```
+
+It measures every component's drawing box from `references/component-catalog.json` and reports:
+
+| finding | meaning |
+|---|---|
+| `OVERLAP` | two drawing boxes intersect — visibly broken |
+| `LABEL-CLASH` | a drawn label runs into a neighbour's body or another label |
+| `CROWDED` | boxes touch or sit within 2 px — tight but legible (advisory) |
+
+A Tunnel's glyph is `8 * len(label) + 10` px wide, so **a long net name makes a wide glyph**; that is
+the usual cause of two correctly-placed Tunnels colliding. Exit code is 1 when a hard problem is found,
+so it can gate a build.
+
+**Always run this before shipping a schematic.** `verify_model.py` proves the circuit computes the
+right answer; it says nothing about whether a human can read it.
+
 ## Measured facts that prevent the classic failures
 
 * **Library ordinals are canonical.** `0 #Wiring, 1 #Gates, 2 #Plexers, 3 #Arithmetic, 4 #FPArithmetic,
@@ -75,7 +100,7 @@ Full procedures: `references/workflows/{analyze,generate,verify,repair,sequentia
   multi-column circuits must use tunnel wiring, which is the verified path.
 * Behaviour is simulated for **10 of 74** components (the gate family); geometry is measured for all 74.
 * Floating-point behaviour is unmeasured.
-* `seqmodel.py`'s `JK Flip-Flop`/`SR Flip-Flop` names are wrong and those components are dropped.
+* `seqmodel.py`'s `J-K Flip-Flop`/`S-R Flip-Flop` names are wrong and those components are dropped.
 * `ROM` is not modelled; RAM cannot be preloaded from a `.circ`.
 
 Details and per-circuit numbers: `README.md` §2 and `docs/internals/CAPABILITIES.md`.

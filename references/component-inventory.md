@@ -153,8 +153,8 @@
 |---|---|---|---|
 | `D Flip-Flop` | D Flip-Flop | **V** | `D/T(−10,+10)` `CK(−10,+50)` `Q(+50,+10)` `QB(+50,+50)` `PRESET(+20,0)` `RESET(+20,+60)`；框 `(−10,0,60,60)` |
 | `T Flip-Flop` | T Flip-Flop | **V** | 端口同 `D Flip-Flop`；`seq_tff` 32 周期实测通过 |
-| `J-K Flip-Flop` | J-K Flip-Flop | **U** | ⚠️ **XML 名带连字符**；本项目 `seqmodel.py` 用的是错误名 `JK Flip-Flop`（见 §7） |
-| `S-R Flip-Flop` | S-R Flip-Flop | **U** | ⚠️ 同上，正确名为 `S-R Flip-Flop`，代码用了 `SR Flip-Flop` |
+| `J-K Flip-Flop` | J-K Flip-Flop | **U** | ⚠️ **XML 名带连字符**；本项目 `seqmodel.py` **曾**用（**已修复**）的是错误名 `J-K Flip-Flop`（见 §7） |
+| `S-R Flip-Flop` | S-R Flip-Flop | **U** | ⚠️ 同上，正确名为 `S-R Flip-Flop`，代码用了 `S-R Flip-Flop` |
 | `Register` | Register | **V** | `Q(+60,+30)` `D(0,+30)` `CLK(0,+70)` `EN(0,+50)` `CLR(+30,+90)`；框 `(0,0,60,90)`；`CLR` **优先于** `load`；上电为 **UNDEFINED**；`trigger` 缺省 rising |
 | `Counter` | Counter | **U** | 上/下计数、`max`/`up`/`down`/`trigger` 未知 |
 | `Shift Register` | Shift Register | **U** | — |
@@ -341,7 +341,7 @@ REA 已确认实际可用：**rea-agents 6.4.0**，Ghidra 12.1.4 已安装于 `D
 
 ### 7.1 `seqmodel.py` 对 JK/SR 触发器使用了**错误且静默**的 XML 名
 
-清单交叉核对时发现：`seqmodel.py:78` 与 `:232` 把 `JKFF` 映射为 `"JK Flip-Flop"`、`SRFF` 映射为 `"SR Flip-Flop"`，
+清单交叉核对时发现：`seqmodel.py:78` 与 `:232` 把 `JKFF` 映射为 `"J-K Flip-Flop"`、`SRFF` 映射为 `"S-R Flip-Flop"`，
 而发布产物的权威 XML 名是 **`J-K Flip-Flop`** 与 **`S-R Flip-Flop`**（**带连字符**）。
 
 **单变量实测**（以已验证可加载的 `seq_div2.circ` 为基线，只改元件名，跑 `--tty stats`）：
@@ -352,8 +352,8 @@ REA 已确认实际可用：**rea-agents 6.4.0**，Ghidra 12.1.4 已安装于 `D
 | `T Flip-Flop` | ✅ `1  1  T Flip-Flop  Memory` |
 | **`J-K Flip-Flop`** | ✅ `1  1  J-K Flip-Flop  Memory` |
 | **`S-R Flip-Flop`** | ✅ `1  1  S-R Flip-Flop  Memory` |
-| `JK Flip-Flop` | ❌ **无该元件行** |
-| `SR Flip-Flop` | ❌ **无该元件行** |
+| `J-K Flip-Flop` | ❌ **无该元件行** |
+| `S-R Flip-Flop` | ❌ **无该元件行** |
 | `Nonsense Xyz` | ❌ 无（对照） |
 
 **后果**：任何用 `seqmodel` 生成 JK/SR 触发器的电路，该元件会被 **Logisim 静默丢弃**，
@@ -378,7 +378,7 @@ REA 已确认实际可用：**rea-agents 6.4.0**，Ghidra 12.1.4 已安装于 `D
 | `Random` | Random Generator | 同上 |
 | `DualRAM` | Dual Port RAM | 同上 |
 | `POR` | Power-on Reset | 同上 |
-| `J-K Flip-Flop` / `S-R Flip-Flop` | 同左 | **本项目代码已用错**（§7.1） |
+| `J-K Flip-Flop` / `S-R Flip-Flop` | 同左 | **已修复**：`seqmodel.py` 现在输出正确名称 |
 
 ---
 

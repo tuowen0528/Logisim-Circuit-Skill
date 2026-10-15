@@ -261,3 +261,36 @@ file does **not** matter.
 | Whether *every* attribute name/type is what a generator expects | `[UNVERIFIED]` per component — enumerate from each factory's `AttributeSet`; `docs\CAPABILITIES.md` §7 lists defaults for all components |
 | Exact `desc` strings for `#Plexers`, `#Arithmetic`, `#Memory`, `#I/O` | `[UNVERIFIED]` — read each library's descriptor before emitting |
 | `size`-dependence and `facing`/negation port rotation | geometry — see `03-geometry-layout.md` §2.2 |
+
+## The `facing` rule for Tunnels — measured, and stated as a principle
+
+`facing` does **not** change the electrical behaviour of a Tunnel: Tunnels join by **label**, so a
+Tunnel connects the same way whichever direction it is set to. `facing` only decides **which side the
+glyph body is drawn on**, and getting it wrong is purely a readability defect — the glyph lands on top
+of the component it is attached to.
+
+Measured on the shipped jar for every case (`geom.py show Tunnel facing=west label=Sum`):
+
+| `facing` | glyph box | direction the body is drawn |
+|---|---|---|
+| `west` (and unset) | `loc + (0, -11)`, width `8*len(label)+10` | **RIGHT** of the port |
+| `east` | `loc + (-w, -11)` | **LEFT** of the port |
+
+The names read **backwards** relative to what they draw, which is why choosing a constant per role
+keeps producing the wrong picture. Do not memorise the table — ask one question:
+
+> **Where is the neighbour? Point the glyph AWAY from it.**
+
+| the Tunnel sits on… | neighbour is on the | use |
+|---|---|---|
+| a gate **input** port | the **right** | `east` |
+| an **output Pin** (`facing="west"`, so the pin body extends LEFT) | the **left** | `west` |
+| a driver stub just right of a gate output or input Pin | the **left** | `west` |
+
+`rtllib.py` and `circmodel.py` implement this as `tunnel_facing(neighbour_on_the_right)`, so the
+question is asked at each call site rather than a constant being reused. Before that fix the output-pin
+Tunnel was emitted with `east`, which drew its glyph straight over the pin body.
+
+**Consequence:** because `facing` is cosmetic, changing it can never break a verified circuit. It also
+means a wrong `facing` will pass every electrical check and every exhaustive simulation — only
+`audit_visual.py` sees it.

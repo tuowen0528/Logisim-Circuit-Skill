@@ -31,7 +31,18 @@ This gives zero crossings and zero routing channels and removes the merge failur
 
 Rules, in order of importance:
 
-1. **Do not co-locate a `Pin` with a `Tunnel`.** They do not merge. Join them with an **explicit wire**,
+1. **The `Pin`/`Tunnel` rule is ASYMMETRIC — learn both halves.**
+
+   * **Input `Pin`: never co-locate it with its `Tunnel`.** Neither drives the other (measured), so
+     the net has no source and every consumer reads undefined. Join them with an **explicit wire**:
+     `Pin.loc → Tunnel.loc`, and put the driver Tunnel a stub to the right of the pin.
+   * **Output `Pin`: co-locating IS correct, and is the normal pattern.** Put the receiving `Tunnel`
+     exactly on the output pin's coordinate. The 4-bit ripple-carry adder that verifies 512/512 is
+     built this way, and so is every `rtllib.py` output.
+
+   The reason for the asymmetry: a consumer Tunnel is a *sink* wherever you place it, so putting it on
+   a pin costs nothing; a driver Tunnel has to be reached by a wire from whatever drives the net, and
+   a Pin is not a wire.
    or the input is never driven and every output silently reads a plausible constant `0`.
 2. **Place each consumer `Tunnel` exactly on the gate input port**, so it needs no wire.
 3. **Give each driver `Tunnel` a short stub** from its gate output port.
@@ -110,8 +121,76 @@ negative-control result, and explicitly what remains **unproven**.
 |---|---|
 | Misspelled component name | Component **silently dropped**; file still loads |
 | Attribute value out of range | Component **silently dropped** (e.g. `Splitter` `spacing` outside 1–9) |
-| `Pin` + `Tunnel` co-located | Input never driven; outputs read plausible constant `0` |
+| `Pin` + `Tunnel` co-located, **input side** | The input is never driven; consumers read undefined and the table prints a plausible constant `0` |
+| `Pin` + `Tunnel` co-located, **output side** | **Correct.** This is how `rtllib.py` terminates every output |
 | Diagonal wire | Nets merge → `E`, or a combinational loop → **hang** |
 | Wire endpoint on a foreign net | T-junction merge → `E` / hang |
 | Reused net label | Multiple drivers on one net → `E` everywhere |
 | Wire ending just short of a port | `U` (or `E` if it also touches another net) |
+
+## The `facing` rule for Tunnels — measured, and stated as a principle
+
+`facing` does **not** change the electrical behaviour of a Tunnel: Tunnels join by **label**, so a
+Tunnel connects the same way whichever direction it is set to. `facing` only decides **which side the
+glyph body is drawn on**, and getting it wrong is purely a readability defect — the glyph lands on top
+of the component it is attached to.
+
+Measured on the shipped jar for every case (`geom.py show Tunnel facing=west label=Sum`):
+
+| `facing` | glyph box | direction the body is drawn |
+|---|---|---|
+| `west` (and unset) | `loc + (0, -11)`, width `8*len(label)+10` | **RIGHT** of the port |
+| `east` | `loc + (-w, -11)` | **LEFT** of the port |
+
+The names read **backwards** relative to what they draw, which is why choosing a constant per role
+keeps producing the wrong picture. Do not memorise the table — ask one question:
+
+> **Where is the neighbour? Point the glyph AWAY from it.**
+
+| the Tunnel sits on… | neighbour is on the | use |
+|---|---|---|
+| a gate **input** port | the **right** | `east` |
+| an **output Pin** (`facing="west"`, so the pin body extends LEFT) | the **left** | `west` |
+| a driver stub just right of a gate output or input Pin | the **left** | `west` |
+
+`rtllib.py` and `circmodel.py` implement this as `tunnel_facing(neighbour_on_the_right)`, so the
+question is asked at each call site rather than a constant being reused. Before that fix the output-pin
+Tunnel was emitted with `east`, which drew its glyph straight over the pin body.
+
+**Consequence:** because `facing` is cosmetic, changing it can never break a verified circuit. It also
+means a wrong `facing` will pass every electrical check and every exhaustive simulation — only
+`audit_visual.py` sees it.
+
+### Known visual limitation: components whose pin pitch is below 22 px
+
+`audit_visual.py` reports overlaps in the multiplexer-heavy circuits (`alu4`, `alu8`). They are all one
+shape: consumer Tunnels on **adjacent multiplexer data pins**.
+
+```
+Tunnel@(1520,420) box(1470,409,50,22)
+Tunnel@(1520,410) box(1470,399,50,22)     10 px apart, 22 px tall
+```
+
+Measured: a Multiplexer with `select=4` has its 16 data pins **10 px apart**, and a Tunnel glyph is
+**22 px tall** and `8*len(label)+10` px wide. The tunnel-first pattern puts each consumer Tunnel exactly
+ON its pin, so **glyphs on adjacent data pins overlap regardless of label length** — even a
+one-character name is 18 px wide against a 10 px pitch.
+
+This is **structural, not a wiring bug**, and it does not affect correctness: the circuits still
+simulate exhaustively (`alu8` is verified 1,048,576/1,048,576). It is a readability trade-off inherent
+to tunnelling a component whose pins are closer together than a glyph is tall.
+
+Two ways out, neither taken by default:
+
+* **Wire the data pins instead of tunnelling them** — put one Tunnel further left and fan out with real
+  wires. That gives up the "no routing needed" property for that component, and the automatic router is
+  only verified for single-bit combinational circuits (see README §2).
+* **Accept the overlap** where the pitch is below 22 px, and know that the audit lists the coordinates.
+
+`adder4.circ` — every gate there has 40 px pin spacing — is completely clean, which shows the pattern
+works wherever the geometry allows it. Run `audit_visual.py` on your own circuit to see which case you
+are in.
+
+**What `facing` cannot fix:** because the glyphs are too tall for the pitch in the first place, no
+direction choice helps here. `facing` fixes a glyph drawn over the *component body* (see
+`generate.md`), not two glyphs fighting for the same 10 px.

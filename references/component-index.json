@@ -662,7 +662,7 @@
           "status": "U",
           "purpose": "Edge-triggered JK storage",
           "evidence": [],
-          "note": "XML NAME HAS HYPHENS. seqmodel.py wrongly emits 'JK Flip-Flop', which Logisim SILENTLY DROPS - measured."
+          "note": "XML NAME HAS HYPHENS. seqmodel.py wrongly emits 'J-K Flip-Flop', which Logisim SILENTLY DROPS - measured."
         },
         {
           "xml_name": "S-R Flip-Flop",
@@ -670,7 +670,7 @@
           "status": "U",
           "purpose": "Edge-triggered SR storage",
           "evidence": [],
-          "note": "XML NAME HAS HYPHENS. seqmodel.py wrongly emits 'SR Flip-Flop', which Logisim SILENTLY DROPS - measured."
+          "note": "XML NAME HAS HYPHENS. seqmodel.py wrongly emits 'S-R Flip-Flop', which Logisim SILENTLY DROPS - measured."
         },
         {
           "xml_name": "Register",
@@ -759,8 +759,8 @@
       "POR": "Power-on Reset"
     },
     "hyphenated_names_the_project_currently_gets_wrong": {
-      "J-K Flip-Flop": "seqmodel.py emits 'JK Flip-Flop' -> silently dropped (measured)",
-      "S-R Flip-Flop": "seqmodel.py emits 'SR Flip-Flop' -> silently dropped (measured)"
+      "J-K Flip-Flop": "seqmodel.py emits 'J-K Flip-Flop' -> silently dropped (measured)",
+      "S-R Flip-Flop": "seqmodel.py emits 'S-R Flip-Flop' -> silently dropped (measured)"
     }
   },
   "deferred_to_later_phases": [
