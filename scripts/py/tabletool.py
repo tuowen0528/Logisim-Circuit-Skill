@@ -49,17 +49,14 @@ import sys
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
-
+# --------------------------------------------------------------------------------------
 # Paths
 # --------------------------------------------------------------------------------------
 
 # tabletool.py lives at <root>/scripts/py/tabletool.py
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-# --- Logisim JAR location (imports placed here so the order cannot break) ---
-import os
-import pathlib
-_LOCAL_JAR = os.path.join(_PROJECT_ROOT, "scripts", "bin", "logisim-evolution-all.jar")
-DEFAULT_JAR = str(pathlib.Path(os.environ.get("LOGISIM_JAR") or str(_LOCAL_JAR)))
+DEFAULT_JAR = os.path.join(_PROJECT_ROOT, "scripts", "bin", "logisim-evolution-all.jar")
+
 # Guards against accidentally enumerating an astronomically large input space
 # (2^48 rows would never terminate). Callers can raise it explicitly.
 DEFAULT_MAX_ROWS = 5_000_000
@@ -80,10 +77,8 @@ STATUS_FAILED = "failed"
 # letters for unknown/high-impedance/error values (e.g. 'U').
 _UNDEFINED_VALUE_RE = re.compile(r"^[UZXEuxze]+$")
 
-
 class TableParseError(Exception):
     """The CLI output could not be turned into a trustworthy table."""
-
 
 @dataclass
 class Pin:
@@ -94,7 +89,6 @@ class Pin:
 
     def max_value(self) -> int:
         return (1 << self.width) - 1
-
 
 @dataclass
 class SimResult:
@@ -137,7 +131,6 @@ class SimResult:
             "raw_stderr": self.raw_stderr,
         }
 
-
 @dataclass
 class VerifyResult:
     """Structured outcome of comparing a simulated table to a golden model."""
@@ -163,13 +156,11 @@ class VerifyResult:
             "sim": self.sim.to_dict() if self.sim else None,
         }
 
-
 # --------------------------------------------------------------------------------------
 # Header / value parsing
 # --------------------------------------------------------------------------------------
 
 _HEADER_TOKEN_RE = re.compile(r"^(?P<name>.+?)\[(?P<width>\d+)\]$")
-
 
 def parse_header(header_line: str) -> List[Pin]:
     """Parse a header line into Pins. Raises TableParseError if it is not well-formed."""
@@ -194,7 +185,6 @@ def parse_header(header_line: str) -> List[Pin]:
         seen.add(name)
         pins.append(Pin(name=name, width=width))
     return pins
-
 
 def parse_value(text: str, width: int) -> Optional[int]:
     """Parse one rendered value. Returns None for undefined/high-impedance renderings.
@@ -237,7 +227,6 @@ def parse_value(text: str, width: int) -> Optional[int]:
         raise TableParseError(f"value {text!r} exceeds width {width}")
     return value
 
-
 def parse_table(stdout: str, *, filename: str = "<stdout>") -> Tuple[List[Pin], List[Dict[str, Optional[int]]]]:
     """Parse the CLI's truth-table output into (pins, rows).
 
@@ -273,11 +262,9 @@ def parse_table(stdout: str, *, filename: str = "<stdout>") -> Tuple[List[Pin], 
         raise TableParseError("header parsed but the table contains no data rows")
     return pins, rows
 
-
 # --------------------------------------------------------------------------------------
 # Simulation
 # --------------------------------------------------------------------------------------
-
 
 def build_command(jar: str, circuit: str) -> List[str]:
     """Build the exact, mandated CLI invocation."""
@@ -292,7 +279,6 @@ def build_command(jar: str, circuit: str) -> List[str]:
         "table",
         circuit,
     ]
-
 
 def simulate(
     circuit: str,
@@ -436,12 +422,10 @@ def simulate(
     result.status = STATUS_OK
     return result
 
-
 def _is_input(pin: Pin, rows: Sequence[Mapping[str, Optional[int]]]) -> bool:
     """Whether a column varies across rows. Used only for reporting, not for the split."""
     values = {row[pin.name] for row in rows}
     return len(values) > 1
-
 
 # --------------------------------------------------------------------------------------
 # Golden models (independent of the circuit under test)
@@ -449,23 +433,19 @@ def _is_input(pin: Pin, rows: Sequence[Mapping[str, Optional[int]]]) -> bool:
 
 Spec = Callable[[Mapping[str, int], Mapping[str, Pin]], Mapping[str, int]]
 
-
 def _pick(inputs: Mapping[str, int], name: str) -> int:
     if name not in inputs:
         raise KeyError(f"spec requires input pin {name!r}, which the circuit does not have")
     return int(inputs[name])
 
-
 def spec_identity(inputs: Mapping[str, int], pins: Mapping[str, Pin]) -> Mapping[str, int]:
     """y = a. First positive control."""
     return {"y": _pick(inputs, "a")}
-
 
 def spec_not(inputs: Mapping[str, int], pins: Mapping[str, Pin]) -> Mapping[str, int]:
     """y = ~a truncated to the input width. Used as the negative control's true function."""
     width = pins["a"].width
     return {"y": (~_pick(inputs, "a")) & ((1 << width) - 1)}
-
 
 def spec_adder(inputs: Mapping[str, int], pins: Mapping[str, Pin]) -> Mapping[str, int]:
     """{Cout,S} = A + B + Cin, computed with plain integer arithmetic.
@@ -479,11 +459,9 @@ def spec_adder(inputs: Mapping[str, int], pins: Mapping[str, Pin]) -> Mapping[st
     s_width = pins["S"].width if "S" in pins else max(pins["A"].width, pins["B"].width)
     return {"S": total & ((1 << s_width) - 1), "Cout": (total >> s_width) & 1}
 
-
 def spec_passthrough(inputs: Mapping[str, int], pins: Mapping[str, Pin]) -> Mapping[str, int]:
     """A[4] -> S[4]: the identity on a multi-bit bus. Second positive control."""
     return {"S": _pick(inputs, "A")}
-
 
 BUILTIN_SPECS: Dict[str, Spec] = {
     "identity": spec_identity,
@@ -491,7 +469,6 @@ BUILTIN_SPECS: Dict[str, Spec] = {
     "adder": spec_adder,
     "passthrough": spec_passthrough,
 }
-
 
 def load_spec(spec_name: str) -> Spec:
     """Resolve a spec by built-in name, or by ``module.py:function`` path."""
@@ -517,11 +494,9 @@ def load_spec(spec_name: str) -> Spec:
         "or use 'path/to/spec.py:function'"
     )
 
-
 # --------------------------------------------------------------------------------------
 # Verification
 # --------------------------------------------------------------------------------------
-
 
 def verify(
     circuit: str,
@@ -668,16 +643,13 @@ def verify(
         sim=sim,
     )
 
-
 def _hex(value: int, width: int) -> str:
     digits = max(1, (width + 3) // 4)
     return f"0x{value:0{digits}x}"
 
-
 # --------------------------------------------------------------------------------------
 # CLI
 # --------------------------------------------------------------------------------------
-
 
 def _write_json(payload: dict, path: Optional[str]) -> None:
     text = json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=False)
@@ -687,7 +659,6 @@ def _write_json(payload: dict, path: Optional[str]) -> None:
             handle.write(text)
             handle.write("\n")
     print(text)
-
 
 def _cmd_simulate(args: argparse.Namespace) -> int:
     sim = simulate(
@@ -701,7 +672,6 @@ def _cmd_simulate(args: argparse.Namespace) -> int:
     if sim.status == STATUS_OK:
         return 0
     return 2 if sim.status == STATUS_HARNESS_ERROR else 1
-
 
 def _cmd_verify(args: argparse.Namespace) -> int:
     result = verify(
@@ -717,12 +687,10 @@ def _cmd_verify(args: argparse.Namespace) -> int:
         return 0
     return 2 if result.status == STATUS_HARNESS_ERROR else 1
 
-
 def _cmd_list_specs(_: argparse.Namespace) -> int:
     for name in sorted(BUILTIN_SPECS):
         print(name)
     return 0
-
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -776,12 +744,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     return parser
 
-
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     return args.func(args)
-
 
 if __name__ == "__main__":
     sys.exit(main())

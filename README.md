@@ -1,400 +1,217 @@
 # Logisim Circuit Skill
 
-A portable skill that lets an AI agent **analyse, generate, verify and repair Logisim Evolution
-circuits** — and, critically, **prove that a generated circuit actually works** by simulating it.
+一个用于指导 AI **分析、设计、生成、验证、修复** Logisim Evolution 数字电路的 Skill。
 
-The distinguishing property of this project is its verification discipline: a circuit is not accepted
-because a file was produced, but because the file was **opened by the real Logisim Evolution and
-simulated exhaustively** against an independent model, with a negative control that must fail.
+**目标**：用户用自然语言描述需求，AI 能自主设计复杂数字系统（例如 CPU）—— 拆分为模块、
+生成**可真实打开**的 `.circ` 工程、并通过**实际电路仿真**验证功能，而不是只给出示意图或伪代码。
 
----
+**当前状态**：✅ **核心能力可用，验收案例已通过**；若干缺口如实标注（见下）。
 
-## 1. What it does
-
-| Capability | How |
-|---|---|
-| **Understand the `.circ` format** | Measured from the shipped jar, not guessed. `references/logisim-format.md` |
-| **Know every component** | 74 components, 322 attributes, 1,402 geometry sweeps measured out of a real build. `references/component-catalog.json` |
-| **Generate combinational circuits** | From a JSON spec: `scripts/py/circmodel.py build <spec> <out.circ>` |
-| **Generate RTL circuits** | `scripts/py/rtllib.py build <spec> <out.circ>` |
-| **Generate sequential circuits** | `scripts/py/seqmodel.py build <spec> <out.circ>` |
-| **Verify by real simulation** | `scripts/py/verify_model.py <circuit> --spec <spec>` runs the official CLI and compares **every** input combination |
-| **Audit structure** | `scripts/py/audit_width.py` (silent width truncation), `scripts/py/netcheck.py` (connectivity) |
-| **Repair** | `scripts/py/repair.py` — a bounded search over four edit kinds |
-| **Query the knowledge base** | `scripts/py/compdb.py libs\|list\|show\|ports\|check\|traps\|where\|bench` |
-
----
-
-## 2. Verified vs not verified
-
-**Read this before trusting anything.** Every number below comes from a real run of the bundled CLI.
-
-### Verified by exhaustive simulation
-
-| Circuit | Rows checked |
-|---|---|
-| 4-bit ripple-carry adder | **512 / 512** |
-| 4-bit subtractor | **512 / 512** (+ 3 negative controls, all fail as required) |
-| 4-bit ALU (Adder + Multiplexer) | **1024 / 1024** |
-| 8-bit ALU, tunnel-wired | **1,048,576 / 1,048,576** |
-| 2-bit magnitude comparator | 16 / 16 (control fails 12) |
-| 4-way multiplexer | 64 / 64 |
-| 1-bit full adder, **pure wires** | 8 / 8 |
-| All six gate kinds, 8-bit, **pure wires** | **65,536 / 65,536** |
-| 8-bit adder with `Cin` tied, **pure wires** | **65,536 / 65,536** |
-| 2-bit counter, 8-bit register hold, 4-bit accumulator, divide-by-2 | clocked simulation |
-
-Component knowledge base: **74 / 74 components, 322 attributes, 1,402 geometry sweeps**, cross-checked
-against both the shipped jar and the source registration — 100%.
-
-### NOT verified — stated plainly
-* **Some multiplexer-heavy schematics have overlapping Tunnel glyphs** — a Multiplexer with
-  `select=4` has data pins 10 px apart while a Tunnel glyph is 22 px tall, so tunnelling
-  adjacent data pins cannot avoid it. The circuits still verify exhaustively; it is a
-  readability limitation, and `audit_visual.py` reports the coordinates. See
-  `references/workflows/generate.md`.
-
-
-* **Automatic wire routing is proven only for single-bit combinational circuits.** The router
-  (`scripts/py/router.py`) produces real Manhattan wires and passes six connectivity audits, but a
-  multi-bit, multi-column circuit does **not** yet verify: the 8-bit ALU re-routed to pure wires
-  passes **725,572 / 1,048,576**, not all of them. The spec-driven re-route passes 466,165.
-  **Use tunnel wiring (`circmodel.py`, `rtllib.py`) for anything multi-bit — it is the verified path.**
-* **Component behaviour is simulated for 10 of 74 components** (the gate family). Geometry is measured
-  for all 74; behaviour for Plexers, Memory and FPArithmetic is not.
-* **Floating-point behaviour is unmeasured** (8/16/32/64-bit, NaN/Inf/denormal).
-* `seqmodel.py` emits `J-K Flip-Flop` / `S-R Flip-Flop`, but the real XML names are `J-K Flip-Flop` /
-  `S-R Flip-Flop`; those two components are **silently dropped** by the loader. Known, not fixed.
-* `ROM` is not modelled; RAM contents cannot be preloaded from a `.circ`.
-* Repair is a bounded search over four edit kinds, **not** synthesis, and covers only the `parts` spec
-  format.
-
----
-
-## 3. Requirements
-
-| Requirement | Version | Needed for |
+| 能力 | 状态 | 证据 |
 |---|---|---|
-| **Python** | 3.11 or newer | all scripts — **standard library only, no `pip install`** |
-| **Java (JRE)** | 17 or newer | running Logisim Evolution headlessly |
-| **Logisim Evolution** | **5.1.0dev** (built from source) | the simulation used to verify |
+| **验收案例**：4 位全加器，512 组穷举 | ✅ **512/512** | `examples\adder4\adder4.circ`；阴性对照 128 失配 |
+| **4 位全减器**，512 组穷举 | ✅ **512/512** | `output\sub4.circ`；**三个**阴性对照分别失败 512 / 256 / 512 行 |
+| 组合电路生成与验证 | ✅ | `adder2` `adder4` `fulladder` `majority3` `mux2` |
+| RTL 生成（Mux/Decoder/Adder/Comparator/Splitter） | ✅ | 4 位 ALU **1024/1024** |
+| **自然语言 → 电路** | ✅ | 英文段落需求 → 4 选 1 多路器 **64/64**，阴性对照 16 失配 |
+| 时序电路（FF/Register/Clock/Adder/Not/RAM） | ✅ | TFF、2 位行波计数器、寄存器载入保持、4 位累加器 |
+| 信号发生器（分频触发器） | ✅ | `DFF` 取 `D = NOT(Q)`，731,442 行持续翻转 |
+| RAM 端口 | ✅ | `SamplePorts` 实测；`WE` 门控存储已验证 |
+| 结构宽度审计（检出静默截断） | ✅ | `scripts\py\audit_width.py`，W1–W5 |
+| **有界且可证明的修复** | ✅ | 精确定位 ALU 操作码 mux 的 d2/d3 互换并证得 1024/1024 |
+| **`Comparator` 幅值比较（含 mode 属性）** | ✅ **16/16** | 曾误记为开放缺陷：真因是 `mode` 缺省为**有符号**而我漏写该属性（§30）。`rtllib` 现在**总是**写出 `mode`（缺省 `unsigned`，可逐部件指定）；`cmp2` 16/16，阴性对照失败 12 |
+| `ROM`、精确读写时序、自动信号调度 | ⚪ 未实现 | 如实记为缺口 |
 
-> **The Logisim JAR is deliberately not bundled.** It is a 52 MB third-party GPL binary; shipping it
-> in a Git repository is both unwieldy and carries distribution obligations. See
-> `docs/installation.md` for how to obtain it and point the scripts at it.
->
-> Without it, **generation and structural auditing still work**, but **`verify_model.py` cannot run** —
-> and real simulation is the whole point of this skill. Install it.
-
-Development used Python 3.14 and Java 21 on Windows 11. Other versions are untested but expected to
-work for the pure-Python scripts.
-
----
-
-## 4. Install
-
-```bash
-git clone <your-fork-url> Logisim-Circuit-Skill
-cd Logisim-Circuit-Skill
-```
-
-Then install the Logisim JAR — see **`docs/installation.md`**, which covers three ways (prebuilt
-release, building from source, or pointing at an existing install) and how the scripts find it.
-
-### Install into an agent
-
-Agents differ. **There is no single "skills directory" across products.**
-
-* Agents that discover standard `SKILL.md` skills: copy this directory into that agent's skills
-  location. See `docs/agent-compatibility.md` for the paths we could verify.
-* Agents **without** skill discovery: there is nothing to install — hand `SKILL.md` to the model as
-  context and run the scripts yourself.
-* Agents that **cannot execute local processes**: use the knowledge base for analysis only; every
-  generation and verification step must be run by you in a terminal.
-
-`docs/agent-compatibility.md` marks exactly which agents were **actually tested** and which are
-documentation-only. Only tested ones are called compatible.
+**不夸大能力**：`docs/internals/CAPABILITIES.md` 列出本工具链能识别的**假通过**模式；
+ 记录每条实测事实与**已纠正的错误结论**。
 
 ---
 
-## 5. First run
+## 范围
 
-The package ships **no example circuits** — everything below is built from a spec you write yourself.
+**做**：Skill 本体（`SKILL.md` + 工作流），以及它必需的辅助文件与脚本
+（格式研究文档、电路中间表示、生成器、校验器、headless 仿真验证框架）。
 
-### 1. Does the knowledge base load?
+**不做**（本阶段明确排除）：
+- ❌ 不开发 MCP 服务
+- ❌ 不建设独立平台 / Web UI
+- ❌ 不修改、移动、删除或依赖旧 MCP 项目（`D:\Logisim MCP`）
+- ❌ 不在项目目录外创建文件（构建缓存除外，见下）
 
-```bash
-python scripts/py/compdb.py libs
-```
-
-You should see the six target libraries. If not, see `docs/troubleshooting.md`.
-
-### 2. Write a spec
-
-Save this as `fulladder.json` — a 1-bit full adder, verified at 8/8:
-
-```json
-{
-  "name": "main",
-  "inputs": [
-    "a",
-    "b",
-    "c"
-  ],
-  "outputs": [
-    "S",
-    "Cout"
-  ],
-  "gates": [
-    [
-      "n1",
-      "XOR",
-      2,
-      1
-    ],
-    [
-      "n2",
-      "AND",
-      2,
-      1
-    ],
-    [
-      "n3",
-      "AND",
-      2,
-      1
-    ],
-    [
-      "n4",
-      "XOR",
-      2,
-      1
-    ],
-    [
-      "n6",
-      "OR",
-      2,
-      1
-    ]
-  ],
-  "nets": {
-    "a": {
-      "drive": "in:a",
-      "use": [
-        [
-          "n1",
-          0
-        ],
-        [
-          "n2",
-          0
-        ]
-      ]
-    },
-    "b": {
-      "drive": "in:b",
-      "use": [
-        [
-          "n1",
-          1
-        ],
-        [
-          "n2",
-          1
-        ]
-      ]
-    },
-    "c": {
-      "drive": "in:c",
-      "use": [
-        [
-          "n3",
-          1
-        ],
-        [
-          "n4",
-          1
-        ]
-      ]
-    },
-    "x": {
-      "drive": "g:n1",
-      "use": [
-        [
-          "n4",
-          0
-        ],
-        [
-          "n3",
-          0
-        ]
-      ]
-    },
-    "p": {
-      "drive": "g:n2",
-      "use": [
-        [
-          "n6",
-          0
-        ]
-      ]
-    },
-    "q": {
-      "drive": "g:n3",
-      "use": [
-        [
-          "n6",
-          1
-        ]
-      ]
-    },
-    "S": {
-      "drive": "g:n4",
-      "use": [
-        "out:S"
-      ]
-    },
-    "Cout": {
-      "drive": "g:n6",
-      "use": [
-        "out:Cout"
-      ]
-    }
-  },
-  "expression": {
-    "S": "(a ^ b ^ c) & 1",
-    "Cout": "1 if (a + b + c) >= 2 else 0"
-  }
-}
-```
-
-The format in one sentence: `gates` entries are `[ref, KIND, n_inputs, bit_width]`; a net's `drive` is
-`"in:<pin>"` for an input pin or `"g:<gate_ref>"` for a gate output; and each `use` entry is
-`"out:<pin>"` for an output pin or a `[gate_ref, port_index]` pair. The `expression` block is the
-**golden model** — an independent statement of what the circuit must compute, evaluated by the
-verifier and compared against the real simulation.
-
-### 3. Build it
-
-```bash
-python scripts/py/circmodel.py build fulladder.json fulladder.circ
-```
-
-### 4. Verify it against EVERY input combination
-
-```bash
-python scripts/py/verify_model.py fulladder.circ --spec fulladder.json
-```
-
-Expected:
-
-```
-status=passed  rows=8  passed=8  failed=0
-```
-
-`rows` is every combination of the input pins — 8 here, 512 for a 4-bit adder, 1,048,576 for the 8-bit
-ALU. The comparison is not a sample.
-
-### 5. Make it bigger
-
-`references/workflows/generate.md` documents every part kind. Wider circuits are the same shape with
-more gates and multi-bit pins; `rtllib.py` adds `ADDER`, `SUBTRACTOR`, `MULTIPLIER`, `MUX`, `DECODER`
-and `COMPARATOR` parts for RTL-style specs.
-
-If step 4 does not print `8/8`, the installation is wrong — `docs/troubleshooting.md` lists the
-failure modes, and the first thing to check is that the Logisim JAR is found.
+**唯一的外部写入**：Gradle wrapper 与 Maven 依赖会落到用户级缓存 `%USERPROFILE%\.gradle`。
+这是包管理器的标准行为，无法避免，且不属于任何项目目录。
 
 ---
 
-### Visual / GUI layout audit
+## 隔离约束
 
-Electrical checks cannot see the drawing. A tunnel-first schematic is connected entirely by labels, so
-a wall of correctly-wired Tunnels can still be unreadable: glyphs overlapping, labels running into each
-other, a Tunnel drawn across the component it is attached to.
+本项目的所有文件都在 `this package` 内。旧 MCP 项目位于 `D:\Logisim MCP`，
+是**独立**的顶层目录：本项目不读取、不修改、不依赖它。审计已用时间戳证明二者无写入重叠
+（见  §1.3）。
 
-```bash
-python scripts/py/audit_visual.py mycircuit.circ
+`examples\user_samples\` 中的 9 个真实 5.0.0 文件是**只读参考数据**，从未被修改。
+
+---
+
+## 目录结构
+
+```
+SKILL.md                  Skill 指令本体（实质性内容，供 AI 阅读）
+.dsh\skills\logisim-circuit\SKILL.md   Harness 可加载入口（frontmatter 必需，见下）
+docs\                     审计、路线图、架构、验收标准、能力台账、逐样本报告
+references\               .circ 格式、元件属性、几何、实测探针日志（每条断言带出处）
+workflows\                build / verify / generate / sequential / analyze / repair
+scripts\
+  py\                     确定性工具（见下表）
+  analysis\               样本分析、端口实测、审计脚本
+  bin\                    官方 Logisim CLI jar（5.1.0dev，本地构建）
+  dsh\                    Harness 内部规则审计工具（含 validate-skill.js）
+examples\
+  adder4\                 验收产物（512/512）
+  generated\              由 spec 生成并验证过的电路
+  user_samples\           9 个真实 5.0.0 文件（只读）
+tests\
+  specs\                  电路规格（comb / rtl / seq）
+  py\                     203 个单元与集成测试
+  samples_work\           实验中间产物
+logisim-evolution-main\   只读参考源码（5.1.0-dev）
 ```
 
-It measures every component's drawing box from `references/component-catalog.json` and reports:
+### 工具速查
 
-| finding | meaning |
+| 工具 | 用途 |
 |---|---|
-| `OVERLAP` | two drawing boxes intersect — visibly broken |
-| `LABEL-CLASH` | a drawn label runs into a neighbour's body or another label |
-| `CROWDED` | boxes touch or sit within 2 px — tight but legible (advisory) |
+| `scripts\py\generator.py` | 组合电路 spec → `.circ`；`describe` 读回结构 |
+| `scripts\py\verify_model.py` | 对独立金标准穷举验证组合/RTL 电路 |
+| `scripts\py\generator.py` | RTL 生成：Mux / Decoder / Adder / Comparator / Splitter + 门 |
+| `scripts\py\verify_clocked.py` | 时序电路生成与**时钟驱动**验证 |
+| `scripts\py\audit_width.py` | 结构宽度审计（无需仿真即检出静默截断） |
+| `scripts\py\repair.py` | **有界**修复：候选编辑 + 真实仿真证明 + 阴性对照 |
+| `audit_skill.py` | 自审：本 Skill 的每条路径/工作流声称是否属实 |
+| `scripts\dsh\validate-skill.js` | 按 Harness 真实加载规则校验 `SKILL.md` frontmatter |
 
-A Tunnel's glyph is `8 * len(label) + 10` px wide, so **a long net name makes a wide glyph**; that is
-the usual cause of two correctly-placed Tunnels colliding. Exit code is 1 when a hard problem is found,
-so it can gate a build.
-
-**Always run this before shipping a schematic.** `verify_model.py` proves the circuit computes the
-right answer; it says nothing about whether a human can read it.
-
----
-
-## 6. Tests
-
-```bash
-python -m unittest discover -s scripts/py
-```
-
-Some tests spawn the Logisim CLI; set the integration switches to include them:
-
-```bash
-# Linux/macOS
-CIRCMODEL_INTEGRATION=1 RTLLIB_INTEGRATION=1 SEQMODEL_INTEGRATION=1 REPAIR_INTEGRATION=1 RAM_INTEGRATION=1 python -m unittest discover -s scripts/py
-
-# Windows PowerShell
-$env:CIRCMODEL_INTEGRATION=1; python -m unittest discover -s scripts/py
-```
-
-Tests that need the JAR are **skipped**, not failed, when it is absent.
+⚠️ **`rtllib` 与 `seqmodel` 的 spec 格式不同，且都不明确报错**——新 spec 请从最接近的
+**可用**样例复制其约定，而不是读 `--help`。详见  §26。
 
 ---
 
-## 7. Layout
+## 快速开始
 
-```
-SKILL.md                     the skill entry point (capabilities, workflow, resource index)
-README.md                    this file
-references/
-  component-catalog.json     74 components, 322 attributes, 1402 geometry sweeps (measured)
-  component-index.json       index + naming traps
-  evidence-log.md            every measured fact, with the experiment that produced it
-  logisim-format.md          verified .circ format rules
-  libraries-and-components.md
-  geometry-and-layout.md
-  workflows/                 analysis, generate, verify, repair, sequential, build
-scripts/py/                  parsing, generation, layout, validation (flat: they import each other)
-scripts/py/  specs/      tests and circuit specifications
-                    verified circuits
-docs/                        installation, agent compatibility, troubleshooting
+```powershell
+# 1) 生成并穷举验证一个组合电路
+py scripts\py\generator.py build tests\specs\comb\adder4.json examples\generated\adder4.circ
+py scripts\py\verify_model.py examples\generated\adder4.circ --spec tests\specs\comb\adder4.json
+
+# 2) 验收案例：4 位全加器 512 组
+py scripts\py\tabletool.py verify examples\adder4\adder4.circ --spec adder --expect-rows 512
+
+# 3) 结构宽度审计
+py scripts\py\audit_width.py examples\generated\alu4.circ
+
+# 4) 时序电路（需 --seconds 硬超时；时钟循环不会自行终止）
+py scripts\py\verify_clocked.py build  tests\specs\seq\seq_accum4.json examples\generated\seq_accum4.circ
+py scripts\py\verify_clocked.py verify tests\specs\seq\seq_accum4.json examples\generated\seq_accum4.circ --seconds 4 --cycles 64
+
+# 5) 有界修复（--control 必须【不】通过，否则 oracle 无辨别力）
+py scripts\py\repair.py --kind rtl --broken examples\generated\alu4_broken.circ `
+    --spec tests\specs\rtl\alu4_broken.json `
+    --control examples\generated\mux2_broken.circ --control-spec tests\specs\comb\mux2.json
+
+# 6) 全部测试
+py -m unittest discover -s tests\py
 ```
 
 ---
 
-## 8. Things that will bite you
+## 两条铁律
 
-Three failure modes were found the hard way and are worth knowing up front. All three are documented
-in full in `references/evidence-log.md`.
+1. **真实仿真才算证据。** 结构检查只是廉价过滤器，永远不能替代仿真。
+2. **不得把未验证内容当既定事实。** 每条关于文件格式、元件属性、引脚坐标、仿真能力的陈述，
+   必须能指向**实测输出**或**源码行号**；否则标注 `[UNVERIFIED]` 且**禁止**用于生成电路。
 
-1. **Silent component drops.** An unknown component name, or a library ordinal that does not match the
-   project header's canonical numbering, makes the loader discard the component **without any error**.
-   The file opens, the table prints, the values are wrong. Canonical ordinals:
-   `0 #Wiring, 1 #Gates, 2 #Plexers, 3 #Arithmetic, 4 #FPArithmetic, 5 #Memory, 6 #I/O, 7 #TTL,
-   8 #TCL, 9 #Base, 10 #BFH-Praktika, 11 #Input/Output-Extra, 12 #Soc`.
-2. **Stale `.autosave` poisons every later load.** If Logisim is killed mid-run it leaves
-   `.<name>.circ.autosave`; afterwards **every** attempt to open that circuit fails with
-   `Error loading circuit file`. Delete the autosave. This cost a long debugging session.
-3. **An empty toolbar means the file has no `<toolbar>`.** `ToolbarData` starts with no entries and
-   only `<toolbar>` fills it. Generated files must carry the project header; the package applies it
-   automatically, and refuses to write a circuit that would still lack it.
+由此派生、且已被反复验证的三条：
+
+3. **退出码不携带正确性信息。** 错误的电路同样以 `0` 退出。必须解析输出内容。
+4. **阴性对照不是形式。** 没有「必须失败」的对照，就无法区分「修好了电路」与「弄坏了测试」。
+5. **期望值必须来自独立模型并经过实测。** 与自己共享代码的模型不算独立；
+   与代码同源的测试证明不了任何事。
 
 ---
 
-## 9. Licence
+## 环境相关注意事项（已实测，务必遵守）
 
-No `LICENSE` file is included yet: this project depends on Logisim Evolution (GPL) and contains no
-third-party code copied into it, but the intended licence has not been chosen. **Pick one before
-publishing.** See `docs/installation.md` §"Licensing" for the considerations.
+本机是一个编码陷阱，三条硬性要求：
+
+| 要求 | 原因（实测） |
+|---|---|
+| 所有 CLI 调用加 `--locale en` | JVM locale 为 `zh_CN`，否则结果行为中文且以 **MS936** 编码，无法按 UTF-8 解析 |
+| 所有 CLI 调用加 `-Djava.awt.headless=true` | `GraphicsEnvironment.isHeadless()` 默认为 **false**，不强制会尝试开 GUI |
+| 所有 Python 文件写入显式 `encoding="utf-8"` | Python 默认编码为 **cp936**，而 `.circ` 声明为 UTF-8，不指定会破坏非 ASCII 内容 |
+
+另有三条会**伪造结果**的陷阱：
+
+* 测量退出码时**不得**对 java 输出使用 `Select-Object -First N` 之类截断管道 ——
+  实测会提前关闭管道杀死 JVM，产生**假的失败退出码**。
+* `--tty table` 重定向到文件时写出 **UTF-16LE + BOM**，且**读完前不得提前读取**
+  （JVM 缓冲会截断证据）。
+* **启动器陷阱**：`Start-Process -ArgumentList` 会按空格拆路径；带 `;` 的 classpath 同样会被拆，
+  并产生**看似代码错误**的 `ClassNotFoundException`。请用批处理文件传递 java 参数。
+
+---
+
+## 如何运行真实仿真
+
+```powershell
+# 组合电路：无 halt 引脚时 --tty table 会穷举所有输入引脚
+java '-Djava.awt.headless=true' -jar scripts\bin\logisim-evolution-all.jar `
+     --locale en --tty table <file.circ>
+
+# 时序电路：存在名为 halt 的输出 Pin 时，走时钟驱动循环
+```
+
+⚠️ **`--test-vector` 在 headless 下不可用**（抛 `HeadlessException`），本项目已改用 `--tty table`。
+
+⚠️ **行只在输出【变化】时打印。** 长度为 1 的流是**真实结果**（「它从未变化」），
+不是工具故障。详见  §14。
+
+---
+
+## Skill 入口点（关键）
+
+Harness 只加载 `<projectRoot>\.dsh\skills\<名>\SKILL.md` 或 `.agents\skills\<名>\SKILL.md`，
+**不扫描项目根的裸 `SKILL.md`**。入口文件**必须**以 `---` 开头并含 `name` 与 `description`，
+否则 Harness **静默忽略**该 Skill（UTF-8 BOM 会造成同样后果）。
+
+本项目曾因此在多轮内**完全不可加载**而无人察觉——校验器早已写出却从未对入口点运行过。
+现在 `tests\py\test_skill_packaging.py` 与 `audit_skill.py` 共同守卫这一点。
+
+```powershell
+node scripts\dsh\validate-skill.js .dsh\skills\logisim-circuit\SKILL.md   # 必须 VALID
+```
+
+---
+
+## 文档索引
+
+| 文档 | 内容 |
+|---|---|
+| `SKILL.md` | Skill 指令本体：工作流、非协商规则、静默陷阱、诚实的能力边界 |
+|  | P1–P10 分阶段路线图，含各阶段**实际**状态与遗留问题 |
+| `docs/internals/CAPABILITIES.md` | 能力台账与**假通过模式**清单 |
+|  | 环境、路径、版本、隔离证据、Harness 加载规则 |
+| `SKILL.md` | 一个目标一个文件：`ir` / `emitter` / `connect` / `layout` / `generator` |
+|  | 5 级验收标准（含 4 位全加器 512 组穷举），逐级分别证明 |
+| `references\logisim-format.md` / the component catalogue | `.circ` 格式与元件语义 |
+|  | V-1…V-84 断言—证据矩阵 |
+|  | 全部实测探针日志（含**被推翻的结论**与纠正记录） |
+|  | 9 个用户样本的逐样本分析报告 |
+
+---
+
+## 待用户确认
+
+1. **`PLAN.md` 的去留**：根目录 `PLAN.md` 已被  取代，是删除还是保留？
+2. 是否允许 `git init`（属不可逆操作，未擅自执行）。
+3. 目标版本是否统一用我方构建的 **5.1.0dev**（与参考源码一致），而非系统已装的 5.0.0。
+
+详见  §8。

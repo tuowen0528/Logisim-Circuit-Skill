@@ -45,13 +45,13 @@ The entire knowledge base is plain text and JSON, so **analysis works without ru
 
 * read `references/logisim-format.md` for the file format;
 * read `references/component-catalog.json` for measured component geometry and attributes;
-* read `references/evidence-log.md` for what was measured and how.
+* read ``references/logisim-format.md`` for what was measured and how.
 
 **Generation and verification do not work this way.** They need Python and Java. With such an agent,
 the agent produces the spec and the XML, and **you** run:
 
 ```bash
-python scripts/py/circmodel.py build <spec> <out.circ>
+python scripts/py/generator.py build <spec> <out.circ>
 python scripts/py/verify_model.py <out.circ> --spec <spec>
 ```
 

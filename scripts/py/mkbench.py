@@ -8,7 +8,7 @@ WHY THIS SHAPE
 Logisim connects Tunnels by LABEL, not by position. So a testbench needs no routed wires at all: put
 a Tunnel on each input port and a matching Tunnel on a Pin far to the left, and the net is made. That
 is what makes this generator short enough to trust, and it is the same mechanism the project's
-circmodel already relies on.
+ir already relies on.
 
 The port list comes from references/component-catalog.json, which was measured out of the shipped jar - not
 from source reading and not from assumption. Inputs are enumerated exhaustively by `--tty table`, so
@@ -23,21 +23,20 @@ from __future__ import annotations
 
 import argparse
 import io
-import os
 import json
 import pathlib
 import re
 import subprocess
 import sys
 
-
+# Only wrap when RUN, never when imported: a second wrapper around the
 # same buffer closes the underlying stream when collected, and every
 # later print then raises "I/O operation on closed file".
 if __name__ == '__main__':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True)
 
-# Resolved from this module location so the package runs from any
-# working directory.
+# package root, resolved from this file so the package is portable
+import os
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 KB = ROOT / 'references' / 'component-catalog.json'
 
@@ -46,10 +45,8 @@ LIB_ORDINAL = {'Wiring': 0, 'Gates': 1, 'Plexers': 2, 'Arithmetic': 3,
 LIB_DESC = {'Wiring': '#Wiring', 'Gates': '#Gates', 'Plexers': '#Plexers',
             'Arithmetic': '#Arithmetic', 'FPArithmetic': '#FPArithmetic', 'Memory': '#Memory'}
 
-
 def load_kb():
     return json.loads(KB.read_text(encoding='utf-8'))
-
 
 def find_comp(kb, name):
     for lib, L in kb['libraries'].items():
@@ -57,10 +54,7 @@ def find_comp(kb, name):
             return lib, L['components'][name]
     raise SystemExit(f'component {name!r} not in the measured knowledge base')
 
-
-
 PORTSAT_CP = None
-
 
 def measure_ports(component: str, attrs: dict):
     """Ask the jar for the real ports under this exact attribute combination.
@@ -71,8 +65,7 @@ def measure_ports(component: str, attrs: dict):
     than substituting a default that belongs to a different configuration.
     """
     global PORTSAT_CP
-    _LOCAL_JAR = ROOT / 'scripts' / 'bin' / 'logisim-evolution-all.jar'
-    jar = pathlib.Path(os.environ.get("LOGISIM_JAR") or str(_LOCAL_JAR))
+    jar = ROOT / 'scripts' / 'bin' / 'logisim-evolution-all.jar'
     classes = ROOT / 'tests' / 'samples_work' / 'portsat_classes'
     if not (classes / 'PortsAt.class').exists():
         return None
@@ -166,8 +159,6 @@ def main() -> int:
                          f'{a.max_in_bits} ({2 ** total_bits} rows would be enumerated)')
 
     locx, locy = (int(v) for v in a.comp_loc.split(','))
-
-
 
     L = ['<?xml version="1.0" encoding="UTF-8" standalone="no"?>',
          '<project source="5.1.0dev" version="1.0">']
@@ -267,7 +258,6 @@ def main() -> int:
         print(f'    attributes set: {attrs}')
     print(f'    legend -> {leg.relative_to(ROOT)}')
     return 0
-
 
 if __name__ == '__main__':
     raise SystemExit(main())

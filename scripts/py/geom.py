@@ -31,27 +31,22 @@ from __future__ import annotations
 
 import argparse
 import io
-import os
 import json
 import pathlib
 import subprocess
 import sys
 
-
+# Only wrap when RUN, never when imported: a second wrapper around the
 # same buffer closes the underlying stream when collected, and every
 # later print then raises "I/O operation on closed file".
 if __name__ == '__main__':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True)
 
-# Resolved from this module location so the package runs from any
-# working directory.
+# package root, resolved from this file so the package is portable
+import os
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 KB = ROOT / 'references' / 'component-catalog.json'
-# --- Logisim JAR location (imports placed here so the order cannot break) ---
-import os
-import pathlib
-_LOCAL_JAR = ROOT / 'scripts' / 'bin' / 'logisim-evolution-all.jar'
-JAR = pathlib.Path(os.environ.get("LOGISIM_JAR") or str(_LOCAL_JAR))
+JAR = ROOT / 'scripts' / 'bin' / 'logisim-evolution-all.jar'
 PORTSAT_CLASSES = ROOT / 'tests' / 'samples_work' / 'portsat_classes'
 CACHE = ROOT / 'tests' / 'samples_work' / 'geom_cache'
 SAMPLE_CACHE = ROOT / 'tests' / 'samples_work' / '_geom_sample_circ'
@@ -60,29 +55,24 @@ SAMPLE_CACHE = ROOT / 'tests' / 'samples_work' / '_geom_sample_circ'
 # this module returns is normalised to `loc + d(dx,dy)`.
 _PROBE_LOC = 400
 
-
 class GeometryUnknown(Exception):
     """The geometry for this configuration was not measured. Callers must NOT guess."""
 
-
 _kb = None
-
 
 def kb():
     global _kb
     if _kb is None:
         if not KB.exists():
-            raise GeometryUnknown(f'missing {KB}; run scripts/analysis/build_component_knowledge.py')
+            raise GeometryUnknown(f'missing {KB}; run ')
         _kb = json.loads(KB.read_text(encoding='utf-8'))
     return _kb
-
 
 def find(component: str):
     for lib, L in kb()['libraries'].items():
         if component in L['components']:
             return lib, L['components'][component]
     raise GeometryUnknown(f'component {component!r} is not in the measured knowledge base')
-
 
 def _sample_circuit():
     """A .circ that declares all libraries, used to open a LogisimFile for PortsAt."""
@@ -93,12 +83,10 @@ def _sample_circuit():
         SAMPLE_CACHE.write_text(src.read_text(encoding='utf-8', errors='replace'), encoding='utf-8')
     return SAMPLE_CACHE
 
-
 def _cache_path(component: str, attrs: dict) -> pathlib.Path:
     key = component + '|' + '|'.join(f'{k}={v}' for k, v in sorted(attrs.items()))
     safe = ''.join(c if c.isalnum() or c in '-_.= ' else '_' for c in key).replace(' ', '_')
     return CACHE / f'{safe}.json'
-
 
 def _ask_jar(component: str, attrs: dict):
     """Measure one exact configuration with PortsAt. Returns a dict or raises GeometryUnknown."""
@@ -128,7 +116,6 @@ def _ask_jar(component: str, attrs: dict):
         raise GeometryUnknown(f'PortsAt returned no usable geometry for {component} {attrs}: {out[:200]}')
     return {'component': component, 'attrs': attrs, 'bounds': bounds, 'ports': ports,
             'source': 'measured on the jar (PortsAt)'}
-
 
 def geometry(component: str, attrs: dict | None = None) -> dict:
     """Exact bounds and ports (offsets from `loc`) for this component in this configuration.
@@ -171,7 +158,6 @@ def geometry(component: str, attrs: dict | None = None) -> dict:
     cp.write_text(json.dumps(d, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
     return d
 
-
 def _setting_matches(setting: str, attrs: dict) -> bool:
     """A sweep varies exactly ONE attribute from its default, so it can only answer a request that
     differs in that ONE attribute too. Anything else must be measured on the jar.
@@ -186,10 +172,8 @@ def _setting_matches(setting: str, attrs: dict) -> bool:
     val = v.split('/')[0]                      # "30/Narrow" -> "30"
     return len(attrs) == 1 and k in attrs and str(attrs[k]) == val
 
-
 def port_offset(component: str, attrs: dict, index: int):
     return geometry(component, attrs)['ports'][index]
-
 
 def cmd_show(a):
     lib, c = find(a.component)
@@ -204,15 +188,13 @@ def cmd_show(a):
         print(f'      [{i}] loc + d({p["dx"]:>5},{p["dy"]:>5})  width={p["width"]:<3} {p["type"]}')
     return 0
 
-
 def cmd_ports(a):
     return cmd_show(a)
 
-
 def cmd_check(a):
-    """Every gate reachable from circmodel: does its measured geometry agree with circmodel?"""
+    """Every gate reachable from ir: does its measured geometry agree with ir?"""
     sys.path.insert(0, str(ROOT / 'scripts' / 'py'))
-    import circmodel as cm
+    import ir as cm
     bad = []
     for name in ('AND Gate', 'OR Gate', 'NAND Gate', 'NOR Gate', 'XOR Gate', 'XNOR Gate',
                  'NOT Gate', 'Buffer'):
@@ -225,9 +207,9 @@ def cmd_check(a):
                 continue
             ins = [p for p in d['ports'] if p['type'] == 'IN']
             try:
-                got = list(cm.input_ports(name, (0, 0), len(ins), size))
+                got = list(cm.gate_input_ports(name, (0, 0), len(ins), size))
             except Exception as e:
-                bad.append(f'{name} size={size}: circmodel raised {e}')
+                bad.append(f'{name} size={size}: ir raised {e}')
                 continue
             exp = [(p['dx'], p['dy']) for p in ins]
             if got != exp:
@@ -240,7 +222,6 @@ def cmd_check(a):
     print('  every gate/size agrees with the measurement')
     return 0
 
-
 def _parse(pairs):
     out = {}
     for s in pairs or []:
@@ -249,7 +230,6 @@ def _parse(pairs):
         k, v = s.split('=', 1)
         out[k] = v
     return out
-
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
@@ -267,7 +247,6 @@ def main() -> int:
         print(__doc__)
         return 0
     return a.fn(a) or 0
-
 
 if __name__ == '__main__':
     raise SystemExit(main())

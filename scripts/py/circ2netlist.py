@@ -36,13 +36,12 @@ if __name__ == '__main__':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace',
                                   line_buffering=True)
 
-# Resolved from this module location so the package runs from any
-# working directory.
+# package root, resolved from this file so the package is portable
+import os
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts' / 'py'))
 
 Point = tuple
-
 
 def parse(path: pathlib.Path):
     t = path.read_text(encoding='utf-8', errors='replace')
@@ -57,7 +56,6 @@ def parse(path: pathlib.Path):
         x1, y1, x2, y2 = map(int, m.groups())
         wires.append(((x1, y1), (x2, y2)))
     return comps, wires
-
 
 def port_index(comps):
     """{(x,y): (comp_index, port_index, width, type)} via MEASURED geometry, plus Pin specials."""
@@ -81,7 +79,6 @@ def port_index(comps):
         for pi, p in enumerate(g['ports']):
             at[(c['loc'][0] + p['dx'], c['loc'][1] + p['dy'])] = (i, pi, p['width'], p['type'])
     return at
-
 
 def extract(path: pathlib.Path):
     import geom
@@ -125,14 +122,12 @@ def extract(path: pathlib.Path):
             n['driver'] = port if port else p
     return comps, at, nets
 
-
 def label_of(at, comps, pt):
     e = at.get(pt)
     if not e:
         return '?'
     i, pi, w, ty = e
     return f"{comps[i]['name']}@{comps[i]['loc']}[{pi}]{ty}"
-
 
 def main() -> int:
     ap = argparse.ArgumentParser()
@@ -168,7 +163,6 @@ def main() -> int:
         pathlib.Path(a.out).write_text(json.dumps(out, indent=1), encoding='utf-8')
         print(f'  wrote {a.out}')
     return 0
-
 
 if __name__ == '__main__':
     raise SystemExit(main())

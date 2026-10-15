@@ -1,5 +1,23 @@
 # Workflow: generate a Logisim circuit from a requirement
 
+> **This workflow does not design the circuit.** It transcribes a design you have already settled on.
+>
+> Before you start, these must be decided — by you, from your own understanding of digital logic. The
+> generators cannot infer any of them, and will emit a valid `.circ` for a wrong design without
+> complaint:
+>
+> | Decision | Example |
+> |---|---|
+> | What the circuit computes | the operation table, the truth table, the recurrence |
+> | The interface | pin names, directions, bit widths |
+> | The architecture | ripple-carry vs carry-lookahead; shift-add vs array multiplier; Moore vs Mealy |
+> | The encodings | opcode values, state assignments, active-high or active-low |
+> | The clocking | what is sequential, what the reset does, what the enable gates |
+>
+> If any row is still open, close it first. Then write it down as the `expression` block of the spec —
+> that block is your design statement, and it is what the verification is checked against. Writing it by
+> transcribing the gate list verifies nothing.
+
 **Goal:** turn a natural-language requirement into a `.circ` that loads, simulates, and is proven
 correct — without hand-placing coordinates.
 
@@ -38,7 +56,7 @@ Rules, in order of importance:
      `Pin.loc → Tunnel.loc`, and put the driver Tunnel a stub to the right of the pin.
    * **Output `Pin`: co-locating IS correct, and is the normal pattern.** Put the receiving `Tunnel`
      exactly on the output pin's coordinate. The 4-bit ripple-carry adder that verifies 512/512 is
-     built this way, and so is every `rtllib.py` output.
+     built this way, and so is every `generator.py` output.
 
    The reason for the asymmetry: a consumer Tunnel is a *sink* wherever you place it, so putting it on
    a pin costs nothing; a driver Tunnel has to be reached by a wire from whatever drives the net, and
@@ -86,11 +104,11 @@ in this project originated. Then:
 
 A worked generator is at `gen_adder4.py`.
 
-> **Prefer the general path in [`build.md`](build.md).** A declarative spec plus `circmodel.py` is
+> **Prefer the general path in [`build.md`](build.md).** A declarative spec plus `generator.py` is
 > now the supported way to generate circuits, and it verifies against an independent model. The
-> earlier hand-written generator `scripts/dsh/gen_adder.py` was **removed**: it wired the first XOR
+> earlier hand-written generator  was **removed**: it wired the first XOR
 > gate's port 0 to `Cin` instead of `A0`, so `A0..A3` had no effect on the output while the file
-> still loaded and printed all 512 rows (`docs/evidence-matrix.md` W-13/W-16).
+> still loaded and printed all 512 rows ( W-13/W-16).
 
 ## Step 4 — Validate before simulating
 
@@ -122,7 +140,7 @@ negative-control result, and explicitly what remains **unproven**.
 | Misspelled component name | Component **silently dropped**; file still loads |
 | Attribute value out of range | Component **silently dropped** (e.g. `Splitter` `spacing` outside 1–9) |
 | `Pin` + `Tunnel` co-located, **input side** | The input is never driven; consumers read undefined and the table prints a plausible constant `0` |
-| `Pin` + `Tunnel` co-located, **output side** | **Correct.** This is how `rtllib.py` terminates every output |
+| `Pin` + `Tunnel` co-located, **output side** | **Correct.** This is how `generator.py` terminates every output |
 | Diagonal wire | Nets merge → `E`, or a combinational loop → **hang** |
 | Wire endpoint on a foreign net | T-junction merge → `E` / hang |
 | Reused net label | Multiple drivers on one net → `E` everywhere |
@@ -153,7 +171,7 @@ keeps producing the wrong picture. Do not memorise the table — ask one questio
 | an **output Pin** (`facing="west"`, so the pin body extends LEFT) | the **left** | `west` |
 | a driver stub just right of a gate output or input Pin | the **left** | `west` |
 
-`rtllib.py` and `circmodel.py` implement this as `tunnel_facing(neighbour_on_the_right)`, so the
+`generator.py` and `generator.py` implement this as `tunnel_facing(neighbour_on_the_right)`, so the
 question is asked at each call site rather than a constant being reused. Before that fix the output-pin
 Tunnel was emitted with `east`, which drew its glyph straight over the pin body.
 

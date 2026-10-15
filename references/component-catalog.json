@@ -1424,7 +1424,25 @@
           ],
           "attr_count_reported": "9",
           "attr_count_after_sweep": 9,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Output is 1 only when every input is 1.",
+          "usage": "Set `inputs` for more than two, `width` for a bus.",
+          "traps": "A 1-bit input feeds bit 0 of a wide output and the rest read 0, so a wide AND with 1-bit operands looks 'almost right'.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java:545",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/AndGate.java",
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var attrs = (GateAttributes) state.getAttributeSet();\n    final var inputCount = attrs.inputs;\n    final var negated = attrs.negated;\n    final var opts = state.getProject().getOptions().getAttributeSet();\n    final var errorIfUndefined =\n        opts.getValue(Options.ATTR_GATE_UNDEFINED).equals(Options.GATE_UNDEFINED_ERROR);\n\n    final var inputs = new Value[inputCount];\n    var numInputs = 0;\n    var error = false;\n    for (var i = 1; i <= inputCount; i++) {\n      if (state.isPortConnected(i)) {\n        final var negatedBit = (int) (negated >> (i - 1)) & 1;",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java#L545",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "and3"
+            ],
+            "rows_compared": 8,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Buffer": {
           "xml_name": "Buffer",
@@ -1968,7 +1986,24 @@
           ],
           "attr_count_reported": "5",
           "attr_count_after_sweep": 5,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Passes its input through unchanged. Used to re-drive or to delay.",
+          "usage": "`width`.",
+          "traps": "Its input is at a FIXED -20, independent of `size`.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/Buffer.java:221",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/Buffer.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var in = Buffer.repair(state, state.getPortValue(1));\n    state.setPort(0, in, GateAttributes.DELAY);\n  }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/gates/Buffer.java#L221",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "buffer"
+            ],
+            "rows_compared": 16,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Controlled Buffer": {
           "xml_name": "Controlled Buffer",
@@ -2596,7 +2631,24 @@
           ],
           "attr_count_reported": "5",
           "attr_count_after_sweep": 5,
-          "gaps": []
+          "gaps": [],
+          "purpose": "A tri-state buffer: passes the input when `enable` is asserted, otherwise the output floats.",
+          "usage": "`width`; `enable`/`disabled` choose the floating level.",
+          "traps": "Source (ControlledBuffer.java:245): control TRUE passes the input; control ERROR gives the error value; ANYTHING ELSE gives UNKNOWN. So the disabled output is UUUU, not 0 and not a float - a conformance case that enumerates the control cannot match an enabled-only expression. `control` (right/left) is a PLACEMENT attribute, not a polarity.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/ControlledBuffer.java:245",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/ControlledBuffer.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var control = state.getPortValue(2);\n    final var width = state.getAttributeValue(StdAttr.WIDTH);\n    if (control == Value.TRUE) {\n      final var in = state.getPortValue(1);\n      state.setPort(0, isInverter ? in.not() : in, GateAttributes.DELAY);\n    } else if (control == Value.ERROR) {\n      state.setPort(0, Value.createError(width), GateAttributes.DELAY);\n    } else {\n      Value out;\n      if (control == Value.UNKNOWN || control == Value.NIL) {\n        final var opts = state.getProject().getOptions().getAttributeSet();\n        if (opts.getValue(Options.ATTR_GATE_UNDEFINED).equals(Options.GATE_UNDEFINED_ERROR)) {\n          out = Value.createError(width);",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/gates/ControlledBuffer.java#L245",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "ctrl_buffer_enabled"
+            ],
+            "rows_compared": 16,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Controlled Inverter": {
           "xml_name": "Controlled Inverter",
@@ -3298,7 +3350,24 @@
           ],
           "attr_count_reported": "6",
           "attr_count_after_sweep": 6,
-          "gaps": []
+          "gaps": [],
+          "purpose": "A tri-state inverter: passes the INVERTED input when enabled, otherwise floats.",
+          "usage": "Same as Controlled Buffer.",
+          "traps": "Identical to Controlled Buffer but inverting; the isInverter flag is the only difference in the source (ControlledBuffer.java:249). Disabled output is UUUU, not 0.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/ControlledBuffer.java:245",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/ControlledBuffer.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var control = state.getPortValue(2);\n    final var width = state.getAttributeValue(StdAttr.WIDTH);\n    if (control == Value.TRUE) {\n      final var in = state.getPortValue(1);\n      state.setPort(0, isInverter ? in.not() : in, GateAttributes.DELAY);\n    } else if (control == Value.ERROR) {\n      state.setPort(0, Value.createError(width), GateAttributes.DELAY);\n    } else {\n      Value out;\n      if (control == Value.UNKNOWN || control == Value.NIL) {\n        final var opts = state.getProject().getOptions().getAttributeSet();\n        if (opts.getValue(Options.ATTR_GATE_UNDEFINED).equals(Options.GATE_UNDEFINED_ERROR)) {\n          out = Value.createError(width);",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/gates/ControlledBuffer.java#L245",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "ctrl_inverter_enabled"
+            ],
+            "rows_compared": 16,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Even Parity": {
           "xml_name": "Even Parity",
@@ -4702,7 +4771,25 @@
           ],
           "attr_count_reported": "9",
           "attr_count_after_sweep": 9,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Output is 1 when an EVEN number of inputs are 1.",
+          "usage": "`inputs`, `width`; each input can be inverted with `negate0` / `negate1`.",
+          "traps": "Counts over the input values AFTER any per-input inversion, so `negate0` changes the parity of the result. The catalogue measures `negate0` and `negate1` at the two-input default; whether higher indices appear at larger `inputs` has NOT been measured - query a configuration with `compdb ports` before relying on one.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java:545",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/EvenParityGate.java",
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var attrs = (GateAttributes) state.getAttributeSet();\n    final var inputCount = attrs.inputs;\n    final var negated = attrs.negated;\n    final var opts = state.getProject().getOptions().getAttributeSet();\n    final var errorIfUndefined =\n        opts.getValue(Options.ATTR_GATE_UNDEFINED).equals(Options.GATE_UNDEFINED_ERROR);\n\n    final var inputs = new Value[inputCount];\n    var numInputs = 0;\n    var error = false;\n    for (var i = 1; i <= inputCount; i++) {\n      if (state.isPortConnected(i)) {\n        final var negatedBit = (int) (negated >> (i - 1)) & 1;",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java#L545",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "parity_even_1bit"
+            ],
+            "rows_compared": 4,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "NAND Gate": {
           "xml_name": "NAND Gate",
@@ -6106,7 +6193,25 @@
           ],
           "attr_count_reported": "9",
           "attr_count_after_sweep": 9,
-          "gaps": []
+          "gaps": [],
+          "purpose": "AND with the output inverted.",
+          "usage": "`inputs`, `width`.",
+          "traps": "Its input ports are 10 px further left than an AND's - using AND's offset leaves the input floating, and a floating input turns the output into a CONSTANT.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java:545",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/NandGate.java",
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var attrs = (GateAttributes) state.getAttributeSet();\n    final var inputCount = attrs.inputs;\n    final var negated = attrs.negated;\n    final var opts = state.getProject().getOptions().getAttributeSet();\n    final var errorIfUndefined =\n        opts.getValue(Options.ATTR_GATE_UNDEFINED).equals(Options.GATE_UNDEFINED_ERROR);\n\n    final var inputs = new Value[inputCount];\n    var numInputs = 0;\n    var error = false;\n    for (var i = 1; i <= inputCount; i++) {\n      if (state.isPortConnected(i)) {\n        final var negatedBit = (int) (negated >> (i - 1)) & 1;",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java#L545",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "nand3"
+            ],
+            "rows_compared": 8,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "NOR Gate": {
           "xml_name": "NOR Gate",
@@ -7510,7 +7615,25 @@
           ],
           "attr_count_reported": "9",
           "attr_count_after_sweep": 9,
-          "gaps": []
+          "gaps": [],
+          "purpose": "OR with the output inverted.",
+          "usage": "`inputs`, `width`.",
+          "traps": "Same -10 px offset rule as NAND.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java:545",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/NorGate.java",
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var attrs = (GateAttributes) state.getAttributeSet();\n    final var inputCount = attrs.inputs;\n    final var negated = attrs.negated;\n    final var opts = state.getProject().getOptions().getAttributeSet();\n    final var errorIfUndefined =\n        opts.getValue(Options.ATTR_GATE_UNDEFINED).equals(Options.GATE_UNDEFINED_ERROR);\n\n    final var inputs = new Value[inputCount];\n    var numInputs = 0;\n    var error = false;\n    for (var i = 1; i <= inputCount; i++) {\n      if (state.isPortConnected(i)) {\n        final var negatedBit = (int) (negated >> (i - 1)) & 1;",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java#L545",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "nor3"
+            ],
+            "rows_compared": 8,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "NOT Gate": {
           "xml_name": "NOT Gate",
@@ -8116,7 +8239,24 @@
           ],
           "attr_count_reported": "6",
           "attr_count_after_sweep": 6,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Inverts its single input, bitwise.",
+          "usage": "`width` for a bus.",
+          "traps": "Its input is at a FIXED -30 from loc, independent of `size` - a triangular gate does not widen like a box. Computing it as -(size+0) gives -50 and floats the input, which turns the output into a constant. One generator in this project had exactly that bug.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/NotGate.java:263",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/NotGate.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var in = state.getPortValue(1);\n    var out = in.not();\n    out = Buffer.repair(state, out);\n    state.setPort(0, out, GateAttributes.DELAY);\n  }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/gates/NotGate.java#L263",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "not_gate"
+            ],
+            "rows_compared": 16,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "OR Gate": {
           "xml_name": "OR Gate",
@@ -9520,7 +9660,25 @@
           ],
           "attr_count_reported": "9",
           "attr_count_after_sweep": 9,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Output is 1 when any input is 1.",
+          "usage": "`inputs`, `width`.",
+          "traps": "Same width truncation rule as AND.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java:545",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/OrGate.java",
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var attrs = (GateAttributes) state.getAttributeSet();\n    final var inputCount = attrs.inputs;\n    final var negated = attrs.negated;\n    final var opts = state.getProject().getOptions().getAttributeSet();\n    final var errorIfUndefined =\n        opts.getValue(Options.ATTR_GATE_UNDEFINED).equals(Options.GATE_UNDEFINED_ERROR);\n\n    final var inputs = new Value[inputCount];\n    var numInputs = 0;\n    var error = false;\n    for (var i = 1; i <= inputCount; i++) {\n      if (state.isPortConnected(i)) {\n        final var negatedBit = (int) (negated >> (i - 1)) & 1;",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java#L545",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "or3"
+            ],
+            "rows_compared": 8,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Odd Parity": {
           "xml_name": "Odd Parity",
@@ -10924,7 +11082,25 @@
           ],
           "attr_count_reported": "9",
           "attr_count_after_sweep": 9,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Output is 1 when an ODD number of inputs are 1.",
+          "usage": "`inputs`, `width`.",
+          "traps": "Identical to XOR for the same input count.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java:545",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/OddParityGate.java",
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var attrs = (GateAttributes) state.getAttributeSet();\n    final var inputCount = attrs.inputs;\n    final var negated = attrs.negated;\n    final var opts = state.getProject().getOptions().getAttributeSet();\n    final var errorIfUndefined =\n        opts.getValue(Options.ATTR_GATE_UNDEFINED).equals(Options.GATE_UNDEFINED_ERROR);\n\n    final var inputs = new Value[inputCount];\n    var numInputs = 0;\n    var error = false;\n    for (var i = 1; i <= inputCount; i++) {\n      if (state.isPortConnected(i)) {\n        final var negatedBit = (int) (negated >> (i - 1)) & 1;",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java#L545",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "parity_odd_1bit"
+            ],
+            "rows_compared": 4,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "PLA": {
           "xml_name": "PLA",
@@ -11671,7 +11847,18 @@
           ],
           "attr_count_reported": "7",
           "attr_count_after_sweep": 7,
-          "gaps": []
+          "gaps": [],
+          "purpose": "A programmable logic array: emits the AND of selected inputs for each product term, then ORs the terms chosen for each output.",
+          "usage": "`input` and `output` counts, plus the table of product terms and which outputs each term contributes to.",
+          "traps": "The table is stored as an ATTRIBUTE; an empty table gives all-zero outputs with no warning.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/Pla.java:231",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/Pla.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var outWidth = state.getAttributeValue(ATTR_OUT_WIDTH);\n    final var tt = state.getAttributeValue(ATTR_TABLE);\n    final var input = state.getPortValue(IN_PORT);\n    long val = tt.valueFor(input.toLongValue());\n    state.setPort(1, Value.createKnown(outWidth, val), 1);\n  }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/gates/Pla.java#L231",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "XNOR Gate": {
           "xml_name": "XNOR Gate",
@@ -13149,7 +13336,25 @@
           ],
           "attr_count_reported": "10",
           "attr_count_after_sweep": 10,
-          "gaps": []
+          "gaps": [],
+          "purpose": "XOR with the output inverted: 1 when an EVEN number of inputs are 1.",
+          "usage": "`inputs`, `width`.",
+          "traps": "The inverse of the default XOR: 1 UNLESS exactly one input is high - not even parity, which is the `odd` setting's complement. Its input column is 20 px further left than an AND's (-(size+20)).",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java:545",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/XnorGate.java",
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var attrs = (GateAttributes) state.getAttributeSet();\n    final var inputCount = attrs.inputs;\n    final var negated = attrs.negated;\n    final var opts = state.getProject().getOptions().getAttributeSet();\n    final var errorIfUndefined =\n        opts.getValue(Options.ATTR_GATE_UNDEFINED).equals(Options.GATE_UNDEFINED_ERROR);\n\n    final var inputs = new Value[inputCount];\n    var numInputs = 0;\n    var error = false;\n    for (var i = 1; i <= inputCount; i++) {\n      if (state.isPortConnected(i)) {\n        final var negatedBit = (int) (negated >> (i - 1)) & 1;",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java#L545",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "xnor3_default_exactly_one"
+            ],
+            "rows_compared": 8,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "XOR Gate": {
           "xml_name": "XOR Gate",
@@ -14627,7 +14832,25 @@
           ],
           "attr_count_reported": "10",
           "attr_count_after_sweep": 10,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Output is 1 when an ODD number of inputs are 1.",
+          "usage": "`inputs`, `width`.",
+          "traps": "`xor` DEFAULTS TO '1', which means EXACTLY ONE input high - NOT parity. With three inputs the two differ only on the 111 row, which is the single row that failed when a conformance case asserted parity. Set `xor=odd` for parity.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java:545",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/XorGate.java",
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var attrs = (GateAttributes) state.getAttributeSet();\n    final var inputCount = attrs.inputs;\n    final var negated = attrs.negated;\n    final var opts = state.getProject().getOptions().getAttributeSet();\n    final var errorIfUndefined =\n        opts.getValue(Options.ATTR_GATE_UNDEFINED).equals(Options.GATE_UNDEFINED_ERROR);\n\n    final var inputs = new Value[inputCount];\n    var numInputs = 0;\n    var error = false;\n    for (var i = 1; i <= inputCount; i++) {\n      if (state.isPortConnected(i)) {\n        final var negatedBit = (int) (negated >> (i - 1)) & 1;",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/gates/AbstractGate.java#L545",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "xor3_default_exactly_one"
+            ],
+            "rows_compared": 8,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         }
       },
       "component_count": 13,
@@ -15032,7 +15255,24 @@
           ],
           "attr_count_reported": "1",
           "attr_count_after_sweep": 1,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Outputs the magnitude of the input.",
+          "usage": "`width`.",
+          "traps": "The most-negative value has no positive counterpart and wraps unchanged.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Absolute.java:71",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Absolute.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidth = state.getAttributeValue(StdAttr.WIDTH);\n\n    // compute outputs\n    Value in = state.getPortValue(IN);\n    final Value out, overflow;\n    if (in.isFullyDefined()) {\n      var val = in.toSignExtendedLongValue();\n      var result = val < 0 ? -val : val;\n      out = Value.createKnown(in.getBitWidth(), result);\n      overflow = out.toSignExtendedLongValue() < 0 ? Value.TRUE : Value.FALSE;\n    } else {\n      Value[] bits = in.getAll();",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/Absolute.java#L71",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "absolute"
+            ],
+            "rows_compared": 16,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Adder": {
           "xml_name": "Adder",
@@ -15577,7 +15817,24 @@
           ],
           "attr_count_reported": "1",
           "attr_count_after_sweep": 1,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Adds A, B and the carry-in, producing Sum and Cout.",
+          "usage": "`width` for the operands and the sum.",
+          "traps": "`width` DEFAULTS TO 8 - omitting it on a 4-bit adder makes the ports 8 bits wide and the value mismatch reads `UUU U`. `Cin`/`Cout` are always 1 bit and MUST be driven, or the sum is undefined.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Adder.java:154",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Adder.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    BitWidth dataWidth = state.getAttributeValue(StdAttr.WIDTH);\n\n    // compute outputs\n    Value a = state.getPortValue(IN0);\n    Value b = state.getPortValue(IN1);\n    Value cIn = state.getPortValue(C_IN);\n    Value[] outs = Adder.computeSum(dataWidth, a, b, cIn);\n\n    // propagate them\n    int delay = (dataWidth.getWidth() + 2) * PER_DELAY;\n    state.setPort(OUT, outs[0], delay);\n    state.setPort(C_OUT, outs[1], delay);",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/Adder.java#L154",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "adder4"
+            ],
+            "rows_compared": 512,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "BitAdder": {
           "xml_name": "BitAdder",
@@ -16349,7 +16606,24 @@
           ],
           "attr_count_reported": "2",
           "attr_count_after_sweep": 2,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Counts how many of its inputs are 1 and outputs the count.",
+          "usage": "`inputs` count; the output width follows the count.",
+          "traps": "It counts a POPULATION, not a binary add of the inputs as numbers.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/BitAdder.java:137",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/BitAdder.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    int width = state.getAttributeValue(StdAttr.WIDTH).getWidth();\n    int inputs = state.getAttributeValue(NUM_INPUTS);\n\n    // compute the number of 1 bits\n    int minCount = 0; // number that are definitely 1\n    int maxCount = 0; // number that are definitely not 0 (incl X/Z)\n    for (int i = 1; i <= inputs; i++) {\n      Value v = state.getPortValue(i);\n      Value[] bits = v.getAll();\n      for (Value b : bits) {\n        if (b == Value.TRUE)\n          minCount++;\n        if (b != Value.FALSE)",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/BitAdder.java#L137",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "bitadder"
+            ],
+            "rows_compared": 65536,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "BitFinder": {
           "xml_name": "BitFinder",
@@ -16884,7 +17158,18 @@
           ],
           "attr_count_reported": "2",
           "attr_count_after_sweep": 2,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Finds the index of the first 1 (or first 0) scanning from one end.",
+          "usage": "`width`; the direction and the searched value are attributes.",
+          "traps": "The index convention follows the attribute, not a fixed LSB-first rule - check it before relying on the number.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/BitFinder.java:163",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/BitFinder.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    int width = state.getAttributeValue(StdAttr.WIDTH).getWidth();\n    int outWidth = computeOutputBits(width);\n    Object type = state.getAttributeValue(TYPE);\n\n    Value[] bits = state.getPortValue(INPUT).getAll();\n    Value want;\n    int i;\n    if (type == HIGH_ZERO) {\n      want = Value.FALSE;\n      for (i = bits.length - 1; i >= 0 && bits[i] == Value.TRUE; i--) {}\n    } else if (type == LOW_ZERO) {\n      want = Value.FALSE;\n      for (i = 0; i < bits.length && bits[i] == Value.TRUE; i++) {}",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/BitFinder.java#L163",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "Comparator": {
           "xml_name": "Comparator",
@@ -17527,7 +17812,24 @@
           ],
           "attr_count_reported": "2",
           "attr_count_after_sweep": 2,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Compares A and B and asserts `>`, `=` and `<`.",
+          "usage": "`width`; `mode` chooses signed or unsigned comparison.",
+          "traps": "`mode` DEFAULTS TO twosComplement (SIGNED). 1111 is -1 and is LESS than 0001, so an unsigned comparison built on the default is wrong exactly when an operand has its top bit set. A conformance case asserting unsigned behaviour on the default failed half its rows.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Comparator.java:116",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Comparator.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    BitWidth dataWidth = state.getAttributeValue(StdAttr.WIDTH);\n\n    // compute outputs\n    Value gt = Value.FALSE;\n    Value eq = Value.TRUE;\n    Value lt = Value.FALSE;\n\n    Value a = state.getPortValue(IN0);\n    Value b = state.getPortValue(IN1);\n    Value[] ax = a.getAll();\n    Value[] bx = b.getAll();\n    int maxlen = Math.max(ax.length, bx.length);",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/Comparator.java#L116",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "comparator_signed_default"
+            ],
+            "rows_compared": 256,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Divider": {
           "xml_name": "Divider",
@@ -18170,7 +18472,18 @@
           ],
           "attr_count_reported": "2",
           "attr_count_after_sweep": 2,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Divides A by B. `upper` selects the remainder instead of the quotient on the output.",
+          "usage": "`width`; `mode` selects signed or unsigned.",
+          "traps": "Division by zero yields the ERROR value, which equals no number, so an exhaustive conformance case over a full-width B cannot pass - one is deliberately absent rather than fudged. `mode` defaults to unsigned, so negative operands give large results.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Divider.java:146",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Divider.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    BitWidth dataWidth = state.getAttributeValue(StdAttr.WIDTH);\n    boolean unsigned =\n        state.getAttributeValue(Comparator.MODE_ATTR).equals(Comparator.UNSIGNED_OPTION);\n\n    // compute outputs\n    Value a = state.getPortValue(IN0);\n    Value b = state.getPortValue(IN1);\n    Value upper = state.getPortValue(UPPER);\n    Value[] outs = computeResult(dataWidth, a, b, upper, unsigned);\n\n    // propagate them\n    int delay = dataWidth.getWidth() * (dataWidth.getWidth() + 2) * PER_DELAY;",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/Divider.java#L146",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "Exponentiator": {
           "xml_name": "Exponentiator",
@@ -18728,7 +19041,24 @@
           ],
           "attr_count_reported": "2",
           "attr_count_after_sweep": 2,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Raises A to the power B.",
+          "usage": "`width`.",
+          "traps": "Result is truncated to `width`, so overflow is silent.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Exponentiator.java:127",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Exponentiator.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidth = state.getAttributeValue(StdAttr.WIDTH);\n    final var unsigned =\n          state.getAttributeValue(Comparator.MODE_ATTR) == Comparator.UNSIGNED_OPTION;\n\n    // compute outputs\n    final var a = state.getPortValue(BASE);\n    final var b = state.getPortValue(EXP);\n\n    final var results = computePower(dataWidth, a, b, unsigned);\n\n    // propagate them\n    final var delay = (dataWidth.getWidth() + 2) * PER_DELAY;",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/Exponentiator.java#L127",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "exponentiator"
+            ],
+            "rows_compared": 256,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "MinMax": {
           "xml_name": "MinMax",
@@ -19286,7 +19616,25 @@
           ],
           "attr_count_reported": "2",
           "attr_count_after_sweep": 2,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Outputs the smaller and the larger of A and B.",
+          "usage": "`width`; the comparison is unsigned by default.",
+          "traps": "Unsigned comparison: with the top bit set, 'negative' values compare as large.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/MinMax.java:91",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/MinMax.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidth = state.getAttributeValue(StdAttr.WIDTH);\n    final var unsigned = state.getAttributeValue(Comparator.MODE_ATTR) == Comparator.UNSIGNED_OPTION;\n\n    // compute outputs\n    final var a = state.getPortValue(IN0);\n    final var b = state.getPortValue(IN1);\n    final Value min, max;\n\n    if (a.isFullyDefined() && b.isFullyDefined()) {\n\n      final long min_val, max_val;\n",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/MinMax.java#L91",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "minmax_min",
+              "minmax_max"
+            ],
+            "rows_compared": 512,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Multiplier": {
           "xml_name": "Multiplier",
@@ -19972,7 +20320,24 @@
           ],
           "attr_count_reported": "2",
           "attr_count_after_sweep": 2,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Multiplies A by B. `upper` selects which half of the full product appears on the output; the other half appears on `hi`.",
+          "usage": "`width`; drive `upper` to choose low or high half. `mode` selects unsigned/signed/mixed operand treatment.",
+          "traps": "By default the output is the LOW half and the HIGH half is discarded - a 4-bit multiply of 15*15 gives 1, silently. Drive `upper` (or use `hi`) when the high half matters. `mode` changes the result for negative operands: it is not a single signed/unsigned switch but separate treatment for A and B.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Multiplier.java:193",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Multiplier.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    BitWidth dataWidth = state.getAttributeValue(StdAttr.WIDTH);\n    boolean unsignedA =\n        state.getAttributeValue(Multiplier.MODE_ATTR).equals(Multiplier.UNSIGNED_OPTION);\n    boolean unsignedB =\n        !state.getAttributeValue(Multiplier.MODE_ATTR).equals(Multiplier.SIGNED_OPTION);\n\n    // compute outputs\n    Value a = state.getPortValue(IN0);\n    Value b = state.getPortValue(IN1);\n    Value c_in = state.getPortValue(C_IN);\n    Value[] outs = computeProduct(dataWidth, a, b, c_in, unsignedA, unsignedB);\n",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/Multiplier.java#L193",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "multiplier_low"
+            ],
+            "rows_compared": 256,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Negator": {
           "xml_name": "Negator",
@@ -20298,7 +20663,24 @@
           ],
           "attr_count_reported": "1",
           "attr_count_after_sweep": 1,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Two's-complement negation of its input: output = (-A) modulo 2^width.",
+          "usage": "`width` only. It has NO enable and no pass-through option - it always negates.",
+          "traps": "Negating the most-negative value (1000 for width 4) returns itself, because its positive counterpart is out of range. There is no overflow flag. This component has exactly ONE attribute, `width`; an earlier version of this description invented an enable attribute for it, which the catalogue check caught.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Negator.java:76",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Negator.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    BitWidth dataWidth = state.getAttributeValue(StdAttr.WIDTH);\n\n    // compute outputs\n    Value in = state.getPortValue(IN);\n    Value out;\n    if (in.isFullyDefined()) {\n      out = Value.createKnown(in.getBitWidth(), -in.toLongValue());\n    } else {\n      Value[] bits = in.getAll();\n      Value fill = Value.FALSE;\n      int pos = 0;\n      while (pos < bits.length) {",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/Negator.java#L76",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "negator"
+            ],
+            "rows_compared": 16,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Shifter": {
           "xml_name": "Shifter",
@@ -21021,7 +21403,24 @@
           ],
           "attr_count_reported": "3",
           "attr_count_after_sweep": 3,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Shifts its input left or right by the amount on the second input. `shift` chooses logical, arithmetic or rotate.",
+          "usage": "`width`; the direction is an attribute, the distance is the data input.",
+          "traps": "Arithmetic right shift replicates the sign bit; logical does not. A shift distance at or beyond the width discards everything.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Shifter.java:162",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Shifter.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // compute output\n    BitWidth dataWidth = state.getAttributeValue(StdAttr.WIDTH);\n    int bits = dataWidth == null ? 32 : dataWidth.getWidth();\n    Value vx = state.getPortValue(IN0);\n    Value vd = state.getPortValue(IN1);\n    Value vy; // y will by x shifted by d\n    if (vd.isFullyDefined() && vx.getWidth() == bits) {\n      int d = (int) vd.toLongValue();\n      Object shift = state.getAttributeValue(ATTR_SHIFT);\n      if (d == 0) {\n        vy = vx;\n      } else if (vx.isFullyDefined()) {\n        long x = vx.toLongValue();",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/Shifter.java#L162",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "shifter"
+            ],
+            "rows_compared": 64,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "SquareRoot": {
           "xml_name": "SquareRoot",
@@ -21493,7 +21892,24 @@
           ],
           "attr_count_reported": "1",
           "attr_count_after_sweep": 1,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Integer square root of the input.",
+          "usage": "`width`.",
+          "traps": "Truncates: it is not rounded.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/SquareRoot.java:133",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/SquareRoot.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    BitWidth dataWidth = state.getAttributeValue(StdAttr.WIDTH);\n\n    // compute outputs\n    Value a = state.getPortValue(IN);\n    Value upper = state.getPortValue(UPPER);\n    Value[] outs = computeResult(dataWidth, a, upper);\n\n    // propagate them\n    int delay = dataWidth.getWidth() * (dataWidth.getWidth() + 2) * PER_DELAY;\n    state.setPort(OUT, outs[0], delay);\n    state.setPort(REM, outs[1], delay);\n  }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/SquareRoot.java#L133",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "squareroot"
+            ],
+            "rows_compared": 16,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Subtractor": {
           "xml_name": "Subtractor",
@@ -22038,7 +22454,24 @@
           ],
           "attr_count_reported": "1",
           "attr_count_after_sweep": 1,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Computes A - B - Bin, producing the difference and a borrow-out.",
+          "usage": "`width`; drive `Bin` to 0 for a plain subtraction.",
+          "traps": "`Bin`/`Bout` are 1 bit and must be driven. The output port is named `out`, not `Sum`.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Subtractor.java:99",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/Subtractor.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    BitWidth data = state.getAttributeValue(StdAttr.WIDTH);\n\n    // compute outputs\n    final var a = state.getPortValue(IN0);\n    final var b = state.getPortValue(IN1);\n    var bIn = state.getPortValue(B_IN);\n    if (bIn == Value.UNKNOWN || bIn == Value.NIL) bIn = Value.FALSE;\n    final var outs = Adder.computeSum(data, a, b.not(), bIn.not());\n\n    // propagate them\n    final var delay = (data.getWidth() + 4) * Adder.PER_DELAY;\n    state.setPort(OUT, outs[0], delay);",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/Subtractor.java#L99",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "subtractor4"
+            ],
+            "rows_compared": 512,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         }
       },
       "component_count": 13,
@@ -22755,7 +23188,24 @@
           ],
           "attr_count_reported": "3",
           "attr_count_after_sweep": 3,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Changes a bus width, zero-extending, sign-extending or truncating.",
+          "usage": "`in_width` and `out_width`, and `type` chooses zero, one, sign or input extension.",
+          "traps": "`type` DEFAULTS TO sign, NOT zero. A 4-bit input whose top bit is set widens to 0xFFFF, so a value meant as 15 becomes 65535. A conformance case asserted zero-extension and failed half its rows - the default is sign.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/BitExtender.java:146",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/BitExtender.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    Value in = state.getPortValue(1);\n    BitWidth wout = state.getAttributeValue(ATTR_OUT_WIDTH);\n    String type = getType(state.getAttributeSet());\n    Value extend;\n    switch (type) {\n      case \"one\" -> extend = Value.TRUE;\n      case \"sign\" -> {\n        int win = in.getWidth();\n        extend = win > 0 ? in.get(win - 1) : Value.ERROR;\n      }\n      case \"input\" -> {\n        extend = state.getPortValue(2);\n        if (extend.getWidth() != 1)",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/wiring/BitExtender.java#L146",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "bit_extender_sign"
+            ],
+            "rows_compared": 16,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Clock": {
           "xml_name": "Clock",
@@ -23502,7 +23952,18 @@
           ],
           "attr_count_reported": "8",
           "attr_count_after_sweep": 8,
-          "gaps": []
+          "gaps": [],
+          "purpose": "A free-running oscillator that alternates 0 and 1, driving every sequential component.",
+          "usage": "Set `high` and `low` for the half-periods (ticks). `facing` only moves the glyph.",
+          "traps": "A clock with no consumer produces no rows in the table - a stalled run and a held state look alike, so a long silent table is not proof of anything by itself.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/Clock.java:371",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/Clock.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    Value val = state.getPortValue(0);\n    ClockState q = getState(state);\n    if (!val.equals(q.sending)) { // ignore if no change\n      state.setPort(0, q.sending, 1);\n    }\n  }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/wiring/Clock.java#L371",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "Constant": {
           "xml_name": "Constant",
@@ -23837,7 +24298,24 @@
           ],
           "attr_count_reported": "3",
           "attr_count_after_sweep": 3,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Supplies a fixed value of a given width.",
+          "usage": "`value` is hexadecimal; set `width` for anything wider than one bit.",
+          "traps": "`value` DEFAULTS TO TRUE (1), not 0 - an unset Constant drives a 1.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/Constant.java:275",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/Constant.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var width = state.getAttributeValue(StdAttr.WIDTH);\n    final var value = state.getAttributeValue(ATTR_VALUE);\n    state.setPort(0, Value.createKnown(width, value), 1);\n  }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/wiring/Constant.java#L275",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "constant_default_value"
+            ],
+            "rows_compared": 1,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Ground": {
           "xml_name": "Ground",
@@ -24165,7 +24643,24 @@
           ],
           "attr_count_reported": "2",
           "attr_count_after_sweep": 2,
-          "gaps": []
+          "gaps": [],
+          "purpose": "A 1-bit constant 0.",
+          "usage": "Tie a port low.",
+          "traps": "1 bit fixed - it cannot be widened.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/Ground.java:111",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/Ground.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    BitWidth width = state.getAttributeValue(StdAttr.WIDTH);\n    state.setPort(0, Value.repeat(Value.FALSE, width.getWidth()), 1);\n  }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/wiring/Ground.java#L111",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "ground"
+            ],
+            "rows_compared": 1,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "NoConnect": {
           "xml_name": "NoConnect",
@@ -24418,7 +24913,18 @@
           ],
           "attr_count_reported": "1",
           "attr_count_after_sweep": 1,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Marks a pin as deliberately unconnected, so it reads as 'no connection' rather than undriven.",
+          "usage": "Place it on a pin you intend to leave open.",
+          "traps": "It does not supply a value; a pin that needs a defined level needs a Constant or a Pull Resistor.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/DoNotConnect.java:71",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/DoNotConnect.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // do nothing\n  }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/wiring/DoNotConnect.java#L71",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "POR": {
           "xml_name": "POR",
@@ -24834,7 +25340,18 @@
           ],
           "attr_count_reported": "4",
           "attr_count_after_sweep": 4,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Power-On Reset: outputs 1 for the first N ticks after start, then 0.",
+          "usage": "`width` sets how many ticks it stays high. Wire it to a Register's CLR to get a defined power-on state.",
+          "traps": "Its output is defined by ELAPSED TIME, so a table that samples too late never sees the pulse.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/PowerOnReset.java:319",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/PowerOnReset.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    PORState ret = (PORState) state.getData();\n    if (ret == null) {\n      ret = new PORState(state);\n      state.setData(ret);\n    }\n\n    state.setPort(0, Value.createKnown(BitWidth.ONE, ret.getValue() ? ret.gettstart() : ret.gettend()), 0);\n  }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/wiring/PowerOnReset.java#L319",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "Pin": {
           "xml_name": "Pin",
@@ -25531,7 +26048,18 @@
           ],
           "attr_count_reported": "10",
           "attr_count_after_sweep": 10,
-          "gaps": []
+          "gaps": [],
+          "purpose": "A circuit terminal: an input the harness drives, or an output the harness reads.",
+          "usage": "Set `label` and `type`. For an output, write `type=\"output\"` explicitly and set `width` for a bus.",
+          "traps": "`type` DEFAULTS TO input, so an output pin that omits it becomes an input and never drives anything. A Pin does NOT connect to a Tunnel placed on it without a wire on the INPUT side... this claim was later re-measured and found FALSE: a Tunnel on a Pin does connect, on both sides, and generated circuits rely on it.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/Pin.java:1214",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/Pin.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    PinAttributes attrs = (PinAttributes) state.getAttributeSet();\n\n    PinState q = getState(state);\n    Value found = state.getPortValue(0);\n    if (attrs.type == OUTPUT) {\n      q.foundValue = found; // for color\n      q.intendedValue = found; // for display\n    } else {\n      q.foundValue = found; // for color\n      Value drive = pull(attrs, q.intendedValue);\n      if (!drive.equals(found))\n        state.setPort(0, drive, 1);\n    }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/wiring/Pin.java#L1214",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "Power": {
           "xml_name": "Power",
@@ -25859,7 +26387,24 @@
           ],
           "attr_count_reported": "2",
           "attr_count_after_sweep": 2,
-          "gaps": []
+          "gaps": [],
+          "purpose": "A 1-bit constant 1.",
+          "usage": "Tie a port high.",
+          "traps": "1 bit fixed.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/Power.java:121",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/Power.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    BitWidth width = state.getAttributeValue(StdAttr.WIDTH);\n    state.setPort(0, Value.repeat(Value.TRUE, width.getWidth()), 1);\n  }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/wiring/Power.java#L121",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "power"
+            ],
+            "rows_compared": 1,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Probe": {
           "xml_name": "Probe",
@@ -26204,7 +26749,18 @@
           ],
           "attr_count_reported": "6",
           "attr_count_after_sweep": 6,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Displays the value at a point. Purely observational.",
+          "usage": "Place it on a net to watch it in the GUI.",
+          "traps": "It is passive and never drives. It cannot substitute for an output Pin when the harness has to read a value.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/Probe.java:383",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/Probe.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    StateData oldData = (StateData) state.getData();\n    Value oldValue = oldData == null ? Value.NIL : oldData.curValue;\n    Value newValue = state.getPortValue(0);\n    boolean same = Objects.equals(oldValue, newValue);\n    if (!same) {\n      if (oldData == null) {\n        oldData = new StateData();\n        oldData.curValue = newValue;\n        state.setData(oldData);\n      } else {\n        oldData.curValue = newValue;\n      }\n      int oldWidth = oldValue == null ? 1 : oldValue.getBitWidth().getWidth();",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/wiring/Probe.java#L383",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "Pull Resistor": {
           "xml_name": "Pull Resistor",
@@ -26394,7 +26950,18 @@
           ],
           "attr_count_reported": "2",
           "attr_count_after_sweep": 2,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Pulls a floating net to 0 or 1 without driving a conflict when something else drives it.",
+          "usage": "`pull` selects the direction. Place it where a net would otherwise float.",
+          "traps": "A pull resistor does NOT drive a net that is undriven at the source; it only resolves a floating value on a tri-state net.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/PullResistor.java:204",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/PullResistor.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // nothing to do - handled by CircuitWires\n  }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/wiring/PullResistor.java#L204",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "Splitter": {
           "xml_name": "Splitter",
@@ -28104,7 +28671,18 @@
           ],
           "attr_count_reported": "7",
           "attr_count_after_sweep": 7,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Splits one bus into several narrower buses, or joins several into one. Each output fan carries a bit range.",
+          "usage": "`fanout` = how many branches, `incoming` = the input bus width, and each `bit<i>` names the bit index that branch starts at (LSB-first numbering).",
+          "traps": "Bit ranges are LSB-indexed from the INPUT side; a range that runs past `incoming` silently drops bits. Fan-out wires are at (loc.x+20, loc.y-10-10*(fanout-i)), 20 px apart.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/circuit/Splitter.java:238",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/circuit/Splitter.java"
+          ],
+          "propagate_excerpt": "  public void propagate(CircuitState state) {\n    // handled by CircuitWires, nothing to do\n  }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/circuit/Splitter.java#L238",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "Transistor": {
           "xml_name": "Transistor",
@@ -28762,7 +29340,18 @@
           ],
           "attr_count_reported": "4",
           "attr_count_after_sweep": 4,
-          "gaps": []
+          "gaps": [],
+          "purpose": "A single MOS transistor acting as a voltage-controlled switch between its INPUT and OUTPUT, controlled by the GATE.",
+          "usage": "`type` selects n or p. Ports are named INPUT, OUTPUT and GATE in the source (Transistor.java:52-54), and `type` and `facing` MOVE them: INPUT is at (40*dx, 40*dy) and GATE at (20*(dx+dy), 20*(-dx+dy)) for n-type, with different signs for p-type.",
+          "traps": "The ports are NOT called source/drain - they are INPUT, OUTPUT and GATE, and their coordinates change with `type` and `facing`, so a hard-coded offset only works for one configuration. An open transistor leaves its OUTPUT floating, which reads undefined unless something pulls it.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/Transistor.java:243",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/Transistor.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    state.setPort(OUTPUT, computeOutput(state), 1);\n  }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/wiring/Transistor.java#L243",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "Transmission Gate": {
           "xml_name": "Transmission Gate",
@@ -29449,7 +30038,18 @@
           ],
           "attr_count_reported": "3",
           "attr_count_after_sweep": 3,
-          "gaps": []
+          "gaps": [],
+          "purpose": "A bidirectional switch: connects its two terminals when the control pair is asserted.",
+          "usage": "Needs both a control and its complement to open and close.",
+          "traps": "Bidirectional - do not use it where direction matters; it will pass a value either way.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/TransmissionGate.java:203",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/TransmissionGate.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    state.setPort(OUTPUT, computeOutput(state), 1);\n  }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/wiring/TransmissionGate.java#L203",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "Tunnel": {
           "xml_name": "Tunnel",
@@ -29809,7 +30409,18 @@
           ],
           "attr_count_reported": "4",
           "attr_count_after_sweep": 4,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Connects two points by LABEL rather than by geometry - the only connection mechanism this skill emits.",
+          "usage": "Put a Tunnel exactly ON each port that shares a net and give them all the same `label`. `width` must match the net's real width.",
+          "traps": "`width` DEFAULTS TO 1, so a multi-bit net through a width-less Tunnel is silently truncated to bit 0 - measured: a 2-bit AND read `UU` on every row. Two Tunnels at one coordinate are one node, so two different labels there is a short. `facing` is cosmetic (they join by label) but a wrong value draws the glyph over its component: measured, `west` draws to the RIGHT of the port and `east` to the LEFT - the reverse of the names.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/Tunnel.java:252",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/wiring/Tunnel.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // nothing to do - handled by circuit\n  }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/wiring/Tunnel.java#L252",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         }
       },
       "component_count": 14,
@@ -31040,7 +31651,24 @@
           ],
           "attr_count_reported": "6",
           "attr_count_after_sweep": 6,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Extracts one group of adjacent bits from a bus. `select` chooses which group.",
+          "usage": "`width` = the input bus width, `group` = how many bits come out. Output = bits [select*group, select*group+group).",
+          "traps": "The SELECT is multiplied by the GROUP WIDTH to get the shift, so select=1 with group=4 takes bits 4..7. A select past the end of the bus yields the unknown value, not 0.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/plexers/BitSelector.java:119",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/plexers/BitSelector.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var data = state.getPortValue(1);\n    final var select = state.getPortValue(2);\n    final var groupBits = state.getAttributeValue(GROUP_ATTR);\n    Value group;\n    if (!select.isFullyDefined()) {\n      group = Value.createUnknown(groupBits);\n    } else {\n      int shift = (int) select.toLongValue() * groupBits.getWidth();\n      if (shift >= data.getWidth()) {\n        group = Value.createKnown(groupBits, 0);\n      } else if (groupBits.getWidth() == 1) {\n        group = data.get(shift);\n      } else {",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/plexers/BitSelector.java#L119",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "bitselector"
+            ],
+            "rows_compared": 1024,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Decoder": {
           "xml_name": "Decoder",
@@ -34865,7 +35493,24 @@
           ],
           "attr_count_reported": "6",
           "attr_count_after_sweep": 6,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Drives exactly one of 2^`select` outputs high, the one named by the select value.",
+          "usage": "`select` bits. Outputs are 20 px apart at loc.x+20, the LAST one at loc.y-10.",
+          "traps": "A Decoder has NO `width` attribute. `enable` defaults TRUE in the component, but as a bare PORT it has no default and floats: tying it to 0 DISABLES the decoder so every output reads 0. Outputs are 1 bit each, 20 px apart.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/plexers/Decoder.java:248",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/plexers/Decoder.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var data = BitWidth.ONE;\n    final var select = state.getAttributeValue(PlexersLibrary.ATTR_SELECT);\n    final var threeState = state.getAttributeValue(PlexersLibrary.ATTR_TRISTATE);\n    final var enable = state.getAttributeValue(PlexersLibrary.ATTR_ENABLE);\n    var outputs = 1 << select.getWidth();\n\n    // determine default output values\n    Value others; // the default output\n    if (threeState) {\n      others = Value.UNKNOWN;\n    } else {\n      others = Value.FALSE;",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/plexers/Decoder.java#L248",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "decoder2"
+            ],
+            "rows_compared": 4,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Demultiplexer": {
           "xml_name": "Demultiplexer",
@@ -39089,7 +39734,24 @@
           ],
           "attr_count_reported": "7",
           "attr_count_after_sweep": 7,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Routes its single input to one of 2^`select` outputs, chosen by the select value.",
+          "usage": "`select` bits, `width` of the data.",
+          "traps": "This is a Decoder plus a pass-through; the unselected outputs are 0 or floating depending on `tristate`.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/plexers/Demultiplexer.java:249",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/plexers/Demultiplexer.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    BitWidth data = state.getAttributeValue(StdAttr.WIDTH);\n    BitWidth select = state.getAttributeValue(PlexersLibrary.ATTR_SELECT);\n    Boolean threeState = state.getAttributeValue(PlexersLibrary.ATTR_TRISTATE);\n    boolean enable = state.getAttributeValue(PlexersLibrary.ATTR_ENABLE);\n    int outputs = 1 << select.getWidth();\n    Value en = enable ? state.getPortValue(outputs + 1) : Value.TRUE;\n\n    // determine output values\n    Value others; // the default output\n    if (threeState) {\n      others = Value.createUnknown(data);\n    } else {",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/plexers/Demultiplexer.java#L249",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "demux1"
+            ],
+            "rows_compared": 4,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Multiplexer": {
           "xml_name": "Multiplexer",
@@ -43314,7 +43976,25 @@
           ],
           "attr_count_reported": "7",
           "attr_count_after_sweep": 7,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Selects one of 2^`select` data inputs and puts it on the output.",
+          "usage": "`select` bits, `width` of each data line. Data input i is chosen when the select value is i.",
+          "traps": "`select` has been MEASURED only for 1..8. Its geometry is not uniform: for select>=2 the data block starts at -10*2^(select-1) and steps 10, and the SELECT PIN LIES INSIDE THE BOUNDING BOX - select=4 spans y loc-90..loc+90 while its select pin is at loc+80. Data pins are only 10 px apart, so a Tunnel glyph (22 px tall) on adjacent data pins always overlaps.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/plexers/Multiplexer.java:264",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/plexers/Multiplexer.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var data = state.getAttributeValue(StdAttr.WIDTH);\n    final var select = state.getAttributeValue(PlexersLibrary.ATTR_SELECT);\n    final var enable = state.getAttributeValue(PlexersLibrary.ATTR_ENABLE);\n    final var inputs = 1 << select.getWidth();\n    final var en = enable ? state.getPortValue(inputs + 1) : Value.TRUE;\n    Value out;\n    if (en == Value.FALSE) {\n      Object opt = state.getAttributeValue(PlexersLibrary.ATTR_DISABLED);\n      final var base = opt == PlexersLibrary.DISABLED_ZERO ? Value.FALSE : Value.UNKNOWN;\n      out = Value.repeat(base, data.getWidth());\n    } else if (en == Value.ERROR && state.isPortConnected(inputs + 1)) {\n      out = Value.createError(data);\n    } else {",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/plexers/Multiplexer.java#L264",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "mux2",
+              "mux_disabled"
+            ],
+            "rows_compared": 72,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "Priority Encoder": {
           "xml_name": "Priority Encoder",
@@ -47329,7 +48009,24 @@
           ],
           "attr_count_reported": "3",
           "attr_count_after_sweep": 3,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Outputs the index of the HIGHEST-numbered input that is asserted.",
+          "usage": "`select` sets how many input bits. `disabled` chooses 0 or unknown for the output when nothing is asserted.",
+          "traps": "Port 5 is an ACTIVE-HIGH enable: measured, tying it to 1 enables and tying it to 0 gives UU everywhere. With the enable high but NO input asserted the output is UNDEFINED (UU), not 0 - `disabled` governs the enable-LOW case, not the no-input case. It encodes the HIGHEST-numbered asserted input, so it is not the lowest.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/plexers/PriorityEncoder.java:132",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/plexers/PriorityEncoder.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var select = state.getAttributeValue(PlexersLibrary.ATTR_SELECT);\n    var n = 1 << select.getWidth();\n    final var enabled = state.getPortValue(n + EN_IN) != Value.FALSE;\n\n    int out = -1;\n    Value outDefault;\n    if (enabled) {\n      outDefault = Value.createUnknown(select);\n      for (int i = n - 1; i >= 0; i--) {\n        if (state.getPortValue(i) == Value.TRUE) {\n          out = i;\n          break;\n        }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/plexers/PriorityEncoder.java#L132",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "priority_encoder2"
+            ],
+            "rows_compared": 8,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         }
       },
       "component_count": 5,
@@ -48914,7 +49611,18 @@
           ],
           "attr_count_reported": "9",
           "attr_count_after_sweep": 9,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Counts up or down on each clock edge, with parallel load, clear and enable.",
+          "usage": "`width`, `trigger`, `direction`; `load`/`clear`/`enable` control it.",
+          "traps": "The maximum value is a separate attribute (`maximum`) - a counter is not automatically modulo 2^width. Clear overrides load.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/Counter.java:595",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/Counter.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    var data = (RegisterData) state.getData();\n    if (data == null) {\n      data = new RegisterData(state.getAttributeValue(StdAttr.WIDTH));\n      state.setData(data);\n    }\n\n    final var dataWidth = state.getAttributeValue(StdAttr.WIDTH);\n    Object triggerType = state.getAttributeValue(StdAttr.EDGE_TRIGGER);\n    final var max = new BigInteger(Long.toUnsignedString(state.getAttributeValue(ATTR_MAX)));\n    final var clock = state.getPortValue(CK);\n    final var triggered = data.updateClock(clock, triggerType);\n\n    Value newValue;",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/memory/Counter.java#L595",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "D Flip-Flop": {
           "xml_name": "D Flip-Flop",
@@ -49454,7 +50162,19 @@
           ],
           "attr_count_reported": "4",
           "attr_count_after_sweep": 4,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Captures D on a clock edge and holds it. Outputs Q and Q-bar.",
+          "usage": "`width`; `trigger` for the edge; PRESET/RESET force the state.",
+          "traps": "PRESET and RESET are LEVEL sensitive and override the clock. Power-on state is undefined, so the first edge is the first defined value.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/AbstractFlipFlop.java:383",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/DFlipFlop.java",
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/AbstractFlipFlop.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // boolean changed = false;\n    StateData data = (StateData) state.getData();\n    if (data == null) {\n      // changed = true;\n      data = new StateData();\n      state.setData(data);\n    }\n\n    int n = numInputs;\n    Object triggerType = state.getAttributeValue(triggerAttribute);\n    boolean triggered = data.updateClock(state.getPortValue(n), triggerType);\n\n    if (state.getPortValue(n + 3) == Value.TRUE) { // clear requested",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/memory/AbstractFlipFlop.java#L383",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "DualRAM": {
           "xml_name": "DualRAM",
@@ -52975,7 +53695,18 @@
           ],
           "attr_count_reported": "13",
           "attr_count_after_sweep": 13,
-          "gaps": []
+          "gaps": [],
+          "purpose": "A RAM with two independent read/write ports.",
+          "usage": "Two address/data pairs; each port has its own WE/OE.",
+          "traps": "Both ports writing the same address in one cycle is undefined.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/DualRam.java:72",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/DualRam.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var attrs = state.getAttributeSet();\n    final var myState = (RamState) getState(state);\n\n    // If Clear is active: wipe memory contents and reset data outputs for both\n    // ports (A & B).\n    if (attrs.getValue(RamAttributes.CLEAR_PIN)) {\n      final var clearValue = state.getPortValue(DualRamAppearance.getClrIndex(0, attrs));\n      if (clearValue.equals(Value.TRUE)) {\n        myState.getContents().clear();\n        final var dataBits = state.getAttributeValue(DATA_ATTR);\n\n        final int totalOut = DualRamAppearance.getNrDataOutPorts(attrs);\n        for (var i = 0; i < totalOut; i++) {",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/memory/DualRam.java#L72",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "J-K Flip-Flop": {
           "xml_name": "J-K Flip-Flop",
@@ -53466,7 +54197,19 @@
           ],
           "attr_count_reported": "4",
           "attr_count_after_sweep": 4,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Sets on J, clears on K, toggles when both are asserted, holds when neither is.",
+          "usage": "`trigger`; J/K drive it.",
+          "traps": "The XML name needs the HYPHEN: `J-K Flip-Flop`. `JK Flip-Flop` is silently dropped by the loader - the file opens and the part is simply not there. This project shipped that bug.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/AbstractFlipFlop.java:383",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/JKFlipFlop.java",
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/AbstractFlipFlop.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // boolean changed = false;\n    StateData data = (StateData) state.getData();\n    if (data == null) {\n      // changed = true;\n      data = new StateData();\n      state.setData(data);\n    }\n\n    int n = numInputs;\n    Object triggerType = state.getAttributeValue(triggerAttribute);\n    boolean triggered = data.updateClock(state.getPortValue(n), triggerType);\n\n    if (state.getPortValue(n + 3) == Value.TRUE) { // clear requested",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/memory/AbstractFlipFlop.java#L383",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "RAM": {
           "xml_name": "RAM",
@@ -55565,7 +56308,18 @@
           ],
           "attr_count_reported": "13",
           "attr_count_after_sweep": 13,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Reads and writes a data word at an address. `WE` gates writes, `OE` gates the output.",
+          "usage": "Set BOTH `addrWidth` and `dataWidth` - they are separate attributes.",
+          "traps": "`addrWidth` and `dataWidth` are separate; omitting either makes Logisim use its own default and the port widths silently disagree with the wiring. Contents CANNOT be preloaded from a `.circ`, so a program cannot be shipped inside the file - this is why a CPU needs a load phase or an external instruction bus.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/Ram.java:237",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/Ram.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var attrs = state.getAttributeSet();\n    final var myState = (RamState) getState(state);\n\n    // first we check the clear pin\n    if (attrs.getValue(RamAttributes.CLEAR_PIN)) {\n      final var clearValue = state.getPortValue(RamAppearance.getClrIndex(0, attrs));\n      if (clearValue.equals(Value.TRUE)) {\n        myState.getContents().clear();\n        final var dataBits = state.getAttributeValue(DATA_ATTR);\n\n        for (var i = 0; i < RamAppearance.getNrDataOutPorts(attrs); i++) {\n          final var portVal = isSeparate(attrs)\n                  ? Value.createKnown(dataBits, 0)",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/memory/Ram.java#L237",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "ROM": {
           "xml_name": "ROM",
@@ -56457,7 +57211,18 @@
           ],
           "attr_count_reported": "9",
           "attr_count_after_sweep": 9,
-          "gaps": []
+          "gaps": [],
+          "purpose": "A read-only memory addressed by its address input.",
+          "usage": "Contents come from an attribute.",
+          "traps": "It is NOT modelled by this tool's generators - a ROM cannot be authored from a spec here. It is catalogue-only.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/Rom.java:215",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/Rom.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var myState = getState(state);\n    final var dataBits = state.getAttributeValue(DATA_ATTR);\n    final var attrs = state.getAttributeSet();\n\n    final var addrValue = state.getPortValue(RamAppearance.getAddrIndex(0, attrs));\n    final var nrDataLines = RamAppearance.getNrDataOutPorts(attrs);\n\n    final var addr = addrValue.toLongValue();\n    if (addrValue.isErrorValue() || (addrValue.isFullyDefined() && addr < 0)) {\n      for (var i = 0; i < nrDataLines; i++)\n        state.setPort(RamAppearance.getDataOutIndex(i, attrs), Value.createError(dataBits), DELAY);\n      return;\n    }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/memory/Rom.java#L215",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "Random": {
           "xml_name": "Random",
@@ -57375,7 +58140,18 @@
           ],
           "attr_count_reported": "6",
           "attr_count_after_sweep": 6,
-          "gaps": []
+          "gaps": [],
+          "purpose": "A pseudo-random generator: produces a new value on each clock edge, from a linear-feedback shift register.",
+          "usage": "`width`, `trigger`, `seed`, and `reset` to reload the seed.",
+          "traps": "It is DETERMINISTIC given the seed - the sequence repeats exactly. It is not a source of real entropy, and with seed 0 some configurations lock at a constant.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/Random.java:322",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/Random.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    var data = (StateData) state.getData();\n    if (data == null) {\n      data = new StateData(state.getAttributeValue(ATTR_SEED));\n      state.setData(data);\n    }\n\n    final var dataWidth = state.getAttributeValue(StdAttr.WIDTH);\n    Object triggerType = state.getAttributeValue(StdAttr.EDGE_TRIGGER);\n    final var triggered = data.updateClock(state.getPortValue(CK), triggerType);\n\n    data.propagateReset(state.getPortValue(RST), state.getAttributeValue(ATTR_SEED));\n    if (state.getPortValue(RST) == Value.TRUE) {\n      data.reset();",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/memory/Random.java#L322",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "Register": {
           "xml_name": "Register",
@@ -58414,7 +59190,18 @@
           ],
           "attr_count_reported": "7",
           "attr_count_after_sweep": 7,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Stores one bus value, reloaded on a clock edge when enabled.",
+          "usage": "`width`; `trigger` for the edge, `EN` to allow loading, `CLR` to clear.",
+          "traps": "CLR OVERRIDES the load: with CLR high the register clears on every edge and the value never appears - this project once drove CLR from NOT(CLK) and the table read a constant 0. `trigger` is written explicitly by this tool rather than left to the rising-edge default.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/Register.java:325",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/Register.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var dataWidth = state.getAttributeValue(StdAttr.WIDTH);\n    Object triggerType = state.getAttributeValue(StdAttr.TRIGGER);\n    var data = (RegisterData) state.getData();\n\n    if (data == null) {\n      data = new RegisterData(dataWidth);\n      state.setData(data);\n    }\n\n    final var triggered = data.updateClock(state.getPortValue(CK), triggerType);\n\n    if (state.getPortValue(CLR) == Value.TRUE) {\n      data.value = Value.createKnown(dataWidth, 0);",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/memory/Register.java#L325",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "S-R Flip-Flop": {
           "xml_name": "S-R Flip-Flop",
@@ -59015,7 +59802,19 @@
           ],
           "attr_count_reported": "4",
           "attr_count_after_sweep": 4,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Sets on S, resets on R.",
+          "usage": "`trigger`; S/R drive it.",
+          "traps": "The XML name needs the HYPHEN: `S-R Flip-Flop`; `SR Flip-Flop` is silently dropped. Asserting both inputs at once is the invalid state and yields the error value.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/AbstractFlipFlop.java:383",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/SRFlipFlop.java",
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/AbstractFlipFlop.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // boolean changed = false;\n    StateData data = (StateData) state.getData();\n    if (data == null) {\n      // changed = true;\n      data = new StateData();\n      state.setData(data);\n    }\n\n    int n = numInputs;\n    Object triggerType = state.getAttributeValue(triggerAttribute);\n    boolean triggered = data.updateClock(state.getPortValue(n), triggerType);\n\n    if (state.getPortValue(n + 3) == Value.TRUE) { // clear requested",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/memory/AbstractFlipFlop.java#L383",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "Shift Register": {
           "xml_name": "Shift Register",
@@ -62730,7 +63529,18 @@
           ],
           "attr_count_reported": "7",
           "attr_count_after_sweep": 7,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Shifts its contents one position per clock edge, with parallel load.",
+          "usage": "`width`, the shift direction, and the serial data input.",
+          "traps": "Parallel `load` and shifting share the same clock; the load attribute decides which happens on an edge.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/ShiftRegister.java:511",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/ShiftRegister.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    Object triggerType = state.getAttributeValue(StdAttr.EDGE_TRIGGER);\n    final var parallel = state.getAttributeValue(ATTR_LOAD);\n    ShiftRegisterData data = getData(state);\n    final var len = data.getLength();\n\n    final var triggered = data.updateClock(state.getPortValue(CK), triggerType);\n    if (state.getPortValue(CLR) == Value.TRUE) {\n      data.clear();\n    } else if (triggered) {\n      if (parallel && state.getPortValue(LD) == Value.TRUE) {\n        data.clear();\n        for (int i = len - 1; i >= 0; i--) {\n          data.push(state.getPortValue(6 + 2 * i));",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/memory/ShiftRegister.java#L511",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "T Flip-Flop": {
           "xml_name": "T Flip-Flop",
@@ -63172,7 +63982,19 @@
           ],
           "attr_count_reported": "4",
           "attr_count_after_sweep": 4,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Toggles on each clock edge while T is asserted.",
+          "usage": "`trigger`; T enables toggling.",
+          "traps": "It toggles, it does not copy - using it where a D is wanted gives half the expected frequency.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/AbstractFlipFlop.java:383",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/TFlipFlop.java",
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/memory/AbstractFlipFlop.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // boolean changed = false;\n    StateData data = (StateData) state.getData();\n    if (data == null) {\n      // changed = true;\n      data = new StateData();\n      state.setData(data);\n    }\n\n    int n = numInputs;\n    Object triggerType = state.getAttributeValue(triggerAttribute);\n    boolean triggered = data.updateClock(state.getPortValue(n), triggerType);\n\n    if (state.getPortValue(n + 3) == Value.TRUE) { // clear requested",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/memory/AbstractFlipFlop.java#L383",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         }
       },
       "component_count": 11,
@@ -63505,7 +64327,24 @@
           ],
           "attr_count_reported": "1",
           "attr_count_after_sweep": 1,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Magnitude of a floating-point number.",
+          "usage": "`fpwidth`.",
+          "traps": "Clears the sign bit; NaN loses its sign.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpAbsolute.java:86",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpAbsolute.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidth = state.getAttributeValue(StdAttr.FP_WIDTH);\n\n    // compute outputs\n    final var a = state.getPortValue(IN0);\n\n    final var a_val = a.toDoubleValueFromAnyFloat();\n\n    final var out_val = Math.abs(a_val);\n\n    final var out = Value.createKnown(dataWidth, out_val);\n\n    // propagate them",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/FpAbsolute.java#L86",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "fp_absolute"
+            ],
+            "rows_compared": 256,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "FPAdder": {
           "xml_name": "FPAdder",
@@ -63893,7 +64732,24 @@
           ],
           "attr_count_reported": "1",
           "attr_count_after_sweep": 1,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Adds two floating-point numbers.",
+          "usage": "`fpwidth` selects the format (single/double/etc.).",
+          "traps": "NaN and infinity propagate; the output is not an error value.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpAdder.java:90",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpAdder.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidth = state.getAttributeValue(StdAttr.FP_WIDTH);\n\n    // compute outputs\n    final var a = state.getPortValue(IN0);\n    final var b = state.getPortValue(IN1);\n\n    final var a_val = a.toDoubleValueFromAnyFloat();\n    final var b_val = b.toDoubleValueFromAnyFloat();\n\n    final var out_val = a_val + b_val;\n    final var out = Value.createKnown(dataWidth, out_val);\n",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/FpAdder.java#L90",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "fp_adder"
+            ],
+            "rows_compared": 65536,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "FPClassificator": {
           "xml_name": "FPClassificator",
@@ -64464,7 +65320,18 @@
           ],
           "attr_count_reported": "1",
           "attr_count_after_sweep": 1,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Classifies a floating-point value: normal, subnormal, zero, infinity or NaN.",
+          "usage": "`fpwidth`; the classification appears on a one-hot output.",
+          "traps": "The output is one-hot over the classes, not an index.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpClassificator.java:121",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpClassificator.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidth = state.getAttributeValue(StdAttr.FP_WIDTH);\n\n    // compute outputs\n    final var a = state.getPortValue(IN);\n\n    final var isNegative = (a.toLongValue() & (1L << (dataWidth.getWidth() - 1))) != 0;\n\n    final var isInfinite = switch (dataWidth.getWidth()) {\n      case 8 -> Float.isInfinite(a.toFloatValueFromFP8());\n      case 16 -> Float.isInfinite(a.toFloatValueFromFP16());\n      case 32 -> Float.isInfinite(a.toFloatValue());\n      case 64 -> Double.isInfinite(a.toDoubleValue());",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/FpClassificator.java#L121",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "FPComparator": {
           "xml_name": "FPComparator",
@@ -64974,7 +65841,18 @@
           ],
           "attr_count_reported": "1",
           "attr_count_after_sweep": 1,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Compares two floating-point numbers, including the unordered case.",
+          "usage": "`fpwidth`.",
+          "traps": "NaN is unordered: none of >, =, < is asserted, which is not the same as equality failing.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpComparator.java:108",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpComparator.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidth = state.getAttributeValue(StdAttr.FP_WIDTH);\n\n    // compute outputs\n    final var a = state.getPortValue(IN0);\n    final var b = state.getPortValue(IN1);\n\n    final var a_val = a.toDoubleValueFromAnyFloat();\n    final var b_val = b.toDoubleValueFromAnyFloat();\n\n    // propagate them\n    final var delay = (dataWidth.getWidth() + 2) * PER_DELAY;\n    state.setPort(GT, Value.createKnown(1, a_val > b_val ? 1 : 0), delay);",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/FpComparator.java#L108",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "FPConstant": {
           "xml_name": "FPConstant",
@@ -65186,7 +66064,18 @@
           ],
           "attr_count_reported": "2",
           "attr_count_after_sweep": 2,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Supplies a fixed floating-point constant.",
+          "usage": "`fpwidth`; the value is an attribute.",
+          "traps": "The stored value is the ROUNDED representation at that width, not the decimal you typed.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpConstant.java:133",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpConstant.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    final var width = state.getAttributeValue(StdAttr.FP_WIDTH);\n    final var value = state.getAttributeValue(ATTR_VALUE);\n    state.setPort(OUT, createValue(width, value), PER_DELAY);\n  }",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/FpConstant.java#L133",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "FPDivider": {
           "xml_name": "FPDivider",
@@ -65635,7 +66524,24 @@
           ],
           "attr_count_reported": "1",
           "attr_count_after_sweep": 1,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Divides two floating-point numbers.",
+          "usage": "`fpwidth`.",
+          "traps": "Three MEASURED behaviours: ERR is set when EITHER output is NaN, and port 3 is a SECOND output carrying Math.IEEEremainder - so 1/0 has a finite +infinity quotient yet still raises ERR, because the remainder is NaN. Division by -0 keeps the sign (1/-0 is -infinity). 0/0 is a negative NaN on x86, for the same reason as square root. 1,200 rows were wrong before this.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpDivider.java:95",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpDivider.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidth = state.getAttributeValue(StdAttr.FP_WIDTH);\n\n    // compute outputs\n    final var a = state.getPortValue(IN0);\n    final var b = state.getPortValue(IN1);\n\n    final var a_val = a.toDoubleValueFromAnyFloat();\n    final var b_val = b.toDoubleValueFromAnyFloat();\n\n    final var out_val = a_val / b_val;\n    final var out = Value.createKnown(dataWidth, out_val);\n",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/FpDivider.java#L95",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "fp_divider"
+            ],
+            "rows_compared": 65536,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "FPExponentiator": {
           "xml_name": "FPExponentiator",
@@ -66134,7 +67040,18 @@
           ],
           "attr_count_reported": "2",
           "attr_count_after_sweep": 2,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Raises one floating-point number to the power of another.",
+          "usage": "`fpwidth`.",
+          "traps": "Implemented through log/exp, so small errors appear in the last bits.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpExponentiator.java:145",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpExponentiator.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidth = state.getAttributeValue(StdAttr.FP_WIDTH);\n    final var mode = state.getAttributeValue(EXP_MODE);\n\n    // compute outputs\n    final var expo = state.getPortValue(EXPO);\n\n    final double out_val;\n    final var expo_val = expo.toDoubleValueFromAnyFloat();\n\n    if (mode == ARB) {\n      final var base = state.getPortValue(BASE);\n      final var base_val = base.toDoubleValueFromAnyFloat();",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/FpExponentiator.java#L145",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "FPLogarithm": {
           "xml_name": "FPLogarithm",
@@ -66664,7 +67581,18 @@
           ],
           "attr_count_reported": "2",
           "attr_count_after_sweep": 2,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Logarithm of a floating-point number, in a selectable base.",
+          "usage": "`fpwidth`; the base is an attribute.",
+          "traps": "A non-positive input gives NaN or -infinity.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpLogarithm.java:151",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpLogarithm.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidth = state.getAttributeValue(StdAttr.FP_WIDTH);\n    final var mode = state.getAttributeValue(LOG_MODE);\n\n    // compute outputs\n    final var a = state.getPortValue(ALOG);\n\n    final double out_val;\n    final var a_val = a.toDoubleValueFromAnyFloat();\n\n    if (mode == LOGXY) {\n      final var b = state.getPortValue(BASE);\n      final var b_val = b.toDoubleValueFromAnyFloat();",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/FpLogarithm.java#L151",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "FPMinMax": {
           "xml_name": "FPMinMax",
@@ -67113,7 +68041,24 @@
           ],
           "attr_count_reported": "1",
           "attr_count_after_sweep": 1,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Smaller and larger of two floating-point numbers.",
+          "usage": "`fpwidth`.",
+          "traps": "Java's Math.min/Math.max are IEEE minNum/maxNum, NOT a plain comparison: min(+0,-0) is -0 and max(-0,+0) is +0. A model built on Python's built-in min/max ties on the FIRST argument and disagreed on exactly those two rows. NaN loses to a number rather than propagating.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpMinMax.java:104",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpMinMax.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidth = state.getAttributeValue(StdAttr.FP_WIDTH);\n\n    // compute outputs\n    final var a = state.getPortValue(IN0);\n    final var b = state.getPortValue(IN1);\n\n    final var a_val = a.toDoubleValueFromAnyFloat();\n    final var b_val = b.toDoubleValueFromAnyFloat();\n\n    final var min_val = Math.min(a_val, b_val);\n    final var max_val = Math.max(a_val, b_val);\n",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/FpMinMax.java#L104",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "fp_minmax"
+            ],
+            "rows_compared": 65536,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "FPMultiplier": {
           "xml_name": "FPMultiplier",
@@ -67593,7 +68538,24 @@
           ],
           "attr_count_reported": "2",
           "attr_count_after_sweep": 2,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Multiplies two floating-point numbers.",
+          "usage": "`fpwidth`.",
+          "traps": "`multiplyMode` selects between a plain product and Math.fma(a, b, c) - a FUSED MULTIPLY-ADD that takes a THIRD input on port 3. On the default mode port 3 is unused. 58,564 of 65,536 rows were verified on the default; the fma mode is NOT modelled here.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpMultiplier.java:135",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpMultiplier.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidth = state.getAttributeValue(StdAttr.FP_WIDTH);\n    final var mulMode = state.getAttributeValue(MUL_MODE);\n\n    // compute outputs\n    final var a = state.getPortValue(IN0);\n    final var b = state.getPortValue(IN1);\n\n    final var a_val = a.toDoubleValueFromAnyFloat();\n    final var b_val = b.toDoubleValueFromAnyFloat();\n\n    final double out_val;\n    if (mulMode == MUL) {",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/FpMultiplier.java#L135",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "fp_multiplier"
+            ],
+            "rows_compared": 65536,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "FPNegator": {
           "xml_name": "FPNegator",
@@ -67920,7 +68882,24 @@
           ],
           "attr_count_reported": "1",
           "attr_count_after_sweep": 1,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Negates a floating-point number.",
+          "usage": "`fpwidth`.",
+          "traps": "Negating NaN gives NaN.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpNegator.java:82",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpNegator.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidth = state.getAttributeValue(StdAttr.FP_WIDTH);\n\n    // compute outputs\n    final var a = state.getPortValue(IN);\n    final var a_val = a.toDoubleValueFromAnyFloat();\n\n    final var out_val = a_val * -1;\n    final var out = Value.createKnown(dataWidth, out_val);\n\n    // propagate them\n    final var delay = (dataWidth.getWidth() + 2) * PER_DELAY;\n    state.setPort(OUT, out, delay);",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/FpNegator.java#L82",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "fp_negator"
+            ],
+            "rows_compared": 256,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "FPRound": {
           "xml_name": "FPRound",
@@ -68414,7 +69393,18 @@
           ],
           "attr_count_reported": "2",
           "attr_count_after_sweep": 2,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Rounds a floating-point value to an integer-valued float, in a selectable mode.",
+          "usage": "`fpwidth`; the rounding mode is an attribute.",
+          "traps": "The output is still FLOATING POINT, not an integer bus - it must be converted before use as a count.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpRound.java:96",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpRound.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidth = state.getAttributeValue(StdAttr.FP_WIDTH);\n    final var roundMode = state.getAttributeValue(FpToInt.MODE_ATTRIBUTE);\n\n    // compute outputs\n    final var a = state.getPortValue(IN);\n    final var a_val = a.toDoubleValueFromAnyFloat();\n\n    final double roundedValue;\n    if (roundMode.getValue().equals(\"ceil\")) roundedValue = Math.ceil(a_val);\n    else if (roundMode.getValue().equals(\"floor\")) roundedValue = Math.floor(a_val);\n    else if (roundMode.getValue().equals(\"round\")) roundedValue = Math.round(a_val);\n    else if (roundMode.getValue().equals(\"rint\")) roundedValue = Math.rint(a_val);",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/FpRound.java#L96",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "FPSquareRoot": {
           "xml_name": "FPSquareRoot",
@@ -68741,7 +69731,24 @@
           ],
           "attr_count_reported": "1",
           "attr_count_after_sweep": 1,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Square root of a floating-point number.",
+          "usage": "`fpwidth`.",
+          "traps": "Two IEEE corners, both MEASURED against the real simulator: sqrt(-0.0) is -0.0, not +0.0; and sqrt of a negative finite value returns a NEGATIVE NaN (0xFC at fpwidth 8), not the canonical positive one. The sign is a PLATFORM behaviour, not Logisim's own - `Math.sqrt` compiles to the x86 SQRTSD instruction, whose default QNaN has its sign bit set, and floatToMiniFloat143 copies that sign into the encoding. On a CPU with a positive default NaN (arm64) the same circuit would produce 0x7C. 121 rows of a conformance case were wrong until this was understood.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpSquareRoot.java:87",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpSquareRoot.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidth = state.getAttributeValue(StdAttr.FP_WIDTH);\n\n    // compute outputs\n    final var a = state.getPortValue(IN0);\n\n    final var a_val = a.toDoubleValueFromAnyFloat();\n\n    final var out_val = Math.sqrt(a_val);\n\n    final var out = Value.createKnown(dataWidth, out_val);\n\n    // propagate them",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/FpSquareRoot.java#L87",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "fp_squareroot"
+            ],
+            "rows_compared": 256,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "FPSubtractor": {
           "xml_name": "FPSubtractor",
@@ -69129,7 +70136,24 @@
           ],
           "attr_count_reported": "1",
           "attr_count_after_sweep": 1,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Subtracts two floating-point numbers.",
+          "usage": "Same as FPAdder.",
+          "traps": "Signed zero: -0 and +0 compare equal but print differently.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpSubtractor.java:89",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpSubtractor.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidth = state.getAttributeValue(StdAttr.FP_WIDTH);\n\n    // compute outputs\n    final var a = state.getPortValue(IN0);\n    final var b = state.getPortValue(IN1);\n\n    final var a_val = a.toDoubleValueFromAnyFloat();\n    final var b_val = b.toDoubleValueFromAnyFloat();\n\n    final var out_val = a_val - b_val;\n    final var out = Value.createKnown(dataWidth, out_val);\n",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/FpSubtractor.java#L89",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": {
+            "cases": [
+              "fp_subtractor"
+            ],
+            "rows_compared": 65536,
+            "how": "exhaustive comparison against an independent golden expression, in the real Logisim Evolution CLI"
+          }
         },
         "FPToFP": {
           "xml_name": "FPToFP",
@@ -69711,7 +70735,18 @@
           ],
           "attr_count_reported": "2",
           "attr_count_after_sweep": 2,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Converts between two floating-point formats.",
+          "usage": "Set both widths.",
+          "traps": "Narrowing rounds; the value you read back may differ from the one you wrote.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpToFp.java:130",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpToFp.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidthOut = state.getAttributeValue(FP_WIDTH_OUT);\n\n    // compute outputs\n    final var a = state.getPortValue(IN);\n    final var a_val = a.toDoubleValueFromAnyFloat();\n\n    final var out = Value.createKnown(dataWidthOut, a_val);\n\n    // propagate them\n    final var delay = (dataWidthOut.getWidth() + 2) * PER_DELAY;\n    state.setPort(OUT, out, delay);\n    state.setPort(ERR, Value.createKnown(BitWidth.create(1), Double.isNaN(a_val) ? 1 : 0), delay);",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/FpToFp.java#L130",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "FPToInt": {
           "xml_name": "FPToInt",
@@ -70532,7 +71567,18 @@
           ],
           "attr_count_reported": "3",
           "attr_count_after_sweep": 3,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Converts a floating-point value to an integer bus.",
+          "usage": "Set both the FP width and the integer width.",
+          "traps": "Out-of-range and NaN inputs produce a defined saturation or zero rather than an error - the conversion does not fail loudly.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpToInt.java:92",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpToInt.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidthOut = state.getAttributeValue(StdAttr.WIDTH);\n    final var roundMode = state.getAttributeValue(MODE_ATTRIBUTE);\n\n    // compute outputs\n    final var a = state.getPortValue(IN);\n    final var a_val = a.toDoubleValueFromAnyFloat();\n\n    final long out_val;\n\n    if (roundMode.getValue().equals(\"ceil\")) out_val = (long) Math.ceil(a_val);\n    else if (roundMode.getValue().equals(\"floor\")) out_val = (long) Math.floor(a_val);\n    else if (roundMode.getValue().equals(\"round\")) out_val = Math.round(a_val);",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/FpToInt.java#L92",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "FPTrigonometry": {
           "xml_name": "FPTrigonometry",
@@ -71122,7 +72168,18 @@
           ],
           "attr_count_reported": "2",
           "attr_count_after_sweep": 2,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Sine, cosine or tangent of a floating-point angle.",
+          "usage": "`fpwidth`; the function and the angle unit are attributes.",
+          "traps": "The angle unit matters: radians versus degrees changes the answer entirely, and the default is not obvious.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpTrigonometry.java:124",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/FpTrigonometry.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidth = state.getAttributeValue(StdAttr.FP_WIDTH);\n    final var mode = state.getAttributeValue(TRIG_MODE);\n\n    // compute outputs\n    final var a = state.getPortValue(IN);\n\n    final var a_val = a.toDoubleValueFromAnyFloat();\n\n    final double sin_val;\n    final double tan_val;\n    final double cos_val;\n",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/FpTrigonometry.java#L124",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         },
         "IntToFP": {
           "xml_name": "IntToFP",
@@ -71850,7 +72907,18 @@
           ],
           "attr_count_reported": "3",
           "attr_count_after_sweep": 3,
-          "gaps": []
+          "gaps": [],
+          "purpose": "Converts an integer bus to floating point.",
+          "usage": "Set both widths.",
+          "traps": "Wide integers lose precision silently beyond the mantissa width.",
+          "behaviour_at": "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/IntToFp.java:75",
+          "source_chain": [
+            "logisim-evolution-main/src/main/java/com/cburch/logisim/std/arith/floating/IntToFp.java"
+          ],
+          "propagate_excerpt": "  public void propagate(InstanceState state) {\n    // get attributes\n    final var dataWidthIn = state.getAttributeValue(StdAttr.WIDTH);\n    final var dataWidthOut = state.getAttributeValue(StdAttr.FP_WIDTH);\n    final var unsigned =\n        state.getAttributeValue(Comparator.MODE_ATTR).equals(Comparator.UNSIGNED_OPTION);\n\n    // compute outputs\n    final var a = state.getPortValue(IN);\n    final var a_val = a.toBigInteger(unsigned);\n\n    final var out_val = a.isFullyDefined() ? a_val.doubleValue() : Double.NaN;\n    final var out = Value.createKnown(dataWidthOut, out_val);\n",
+          "behaviour_source": "https://github.com/logisim-evolution/logisim-evolution/blob/main/src/main/java/com/cburch/logisim/std/arith/floating/IntToFp.java#L75",
+          "behaviour_source_reachability": "derived from the local source path; not verified",
+          "sim_verified": null
         }
       },
       "component_count": 18,
@@ -71888,7 +72956,13 @@
     "attributes": 322,
     "geometry_sweeps": 1402,
     "components_with_no_port_reported": 0,
-    "gap_count": 0
+    "gap_count": 0,
+    "components_with_purpose": 74,
+    "components_with_usage": 74,
+    "claim_violations": 0,
+    "components_sim_verified": 40,
+    "rows_compared": 397651
   },
-  "gaps": []
+  "gaps": [],
+  "semantics_source": "component-semantics.json (propagate() bodies, file:line cited) and component-usage.json (authored purpose/usage/traps, checked against the measured attributes)"
 }

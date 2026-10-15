@@ -10,9 +10,9 @@ Status of every entry: **VERIFIED** (literal command + literal output observed),
 kept so we do not repeat it).
 
 - Jar: `scripts\bin\logisim-evolution-all.jar` — 5.1.0dev, sha256 `B872B0C2D4A46F02676C280C30FBD022B74248B9641A7D3D1DB29F9715868515`
-- Harness: `scripts\dsh\cli-probe.py` (raw-byte stdout/stderr capture, hard timeout)
+- Harness:  (raw-byte stdout/stderr capture, hard timeout)
 - Projections: `tests\circ\smoke\`, `tests\circ\probe\`
-- Lead's probes: `references\00-probe-log.md`
+- Lead's probes:
 
 > ### Two harness traps that invalidate evidence — both hit during this session
 >
@@ -24,7 +24,7 @@ kept so we do not repeat it).
 > 2. **PowerShell redirection transcodes and swallows.** `& java … 1>out 2>err` wrote stdout as
 >    **UTF-16LE** (first bytes `255,254`), so an "empty table" looked like a 4-byte file of NULs;
 >    and `2>&1` merged stderr into `ErrorRecord` objects, hiding the error text entirely. All
->    evidence below therefore comes from `scripts\dsh\cli-probe.py`, which uses
+>    evidence below therefore comes from , which uses
 >    `subprocess.run(capture_output=True)` and writes raw bytes.
 
 ---
@@ -167,7 +167,7 @@ These are **data**, not parse failures. A verification runner must treat `U` and
 
 ## 3. ❌ `--test-vector` is unusable headless — REFUTED
 
-`docs\test_vector.md` documents `--test-vector` and claims "Exit with status code 0 on success,
+ documents `--test-vector` and claims "Exit with status code 0 on success,
 non-zero on failure". **It cannot run headless at all.**
 
 ```
@@ -251,11 +251,11 @@ tooling must implement. This is the most important list in the repository.
 | # | Mode | Evidence | Required guard |
 |---|---|---|---|
 | F1 | **Exit code carries no correctness information.** A wrong circuit exits 0. | Undefined component → exit 0; undeclared lib → exit 0; wrong gate output → exit 0. Only malformed XML / missing file give −1. | Never gate on exit code. Parse the table. |
-| F2 | **A misspelled component is silently dropped**; the file loads and the table still prints, just without that part. | `00-probe-log.md` §3: `--tty stats` shows `1 1 Pin` instead of `3 3 Pin / 1 1 AND Gate`. Diagnostic exists but goes to a modal dialog (§6). | Run `--tty stats` every time and assert the component histogram equals the intended one. |
+| F2 | **A misspelled component is silently dropped**; the file loads and the table still prints, just without that part. |  §3: `--tty stats` shows `1 1 Pin` instead of `3 3 Pin / 1 1 AND Gate`. Diagnostic exists but goes to a modal dialog (§6). | Run `--tty stats` every time and assert the component histogram equals the intended one. |
 | F3 | **Empty table looks like a clean run.** No pins ⇒ 4 bytes, two blank lines, exit 0. | 0-pin circuit and undefined-component circuit both produced exactly `\n\n`. | Require ≥1 header line and the expected number of data rows; require header field count == expected pin count. |
 | F4 | **Zero-row "success".** `rowCount = 1 << inputBits`; a circuit that should have N inputs but has fewer silently tests far fewer combinations. | 0-input circuit emits exactly 1 row, exit 0. | Assert `rows == 2 ** total_input_bits`, where `total_input_bits` is computed from the *specification*, not from the file. |
 | F5 | **`U`/`E` are data, not errors.** A circuit that fails to connect anything prints `U` for every row and exits 0. | `a b y` → `0 0 U / 0 1 U / …` | Treat any `U` or `E` in a value column as a mismatch. |
-| F6 | **Oscillation hangs instead of failing.** An unintended net merge can close a combinational loop; the simulator never converges. | `getEnd0 → (100,80)`, `(240,85)` wire never terminated (killed at 20 s); `00-probe-log.md` §7 recorded 146 s CPU. | Hard timeout on every run; a timeout is a **failure**, never a skip. |
+| F6 | **Oscillation hangs instead of failing.** An unintended net merge can close a combinational loop; the simulator never converges. | `getEnd0 → (100,80)`, `(240,85)` wire never terminated (killed at 20 s);  §7 recorded 146 s CPU. | Hard timeout on every run; a timeout is a **failure**, never a skip. |
 | F7 | **Column order is geometric, so a parser keyed to declaration order silently mis-maps columns.** | Measured `r r2 p[4] q s[2] t` for a file declaring `r, r2, p, q, s, t` in that order but placed differently. | Resolve column order from geometry (y then x), or assert the header matches the expected order exactly. |
 | F8 | **Value radix depends on width**, so one parser can misread wide columns. | width ≤ 6 binary, ≥ 7 `0x…` (`TtyInterface.java:195-208`); measured for 1/2/4-bit. | Parse per column using the width from the header `name[width]`. |
 | F9 | **`hashCode()` tie-break** for two pins at the same point makes column order unstable. | `Location.java:186`. | Never place two pins at the same coordinate; assert the header. |
@@ -301,7 +301,7 @@ displayed label and **often contains a space**.
 `Controlled Inverter`, `PLA` — but **`Buffer`** has no suffix.
 
 Key components for this project, with verified default attributes and port offsets
-(2-input gates at default `size=50`; see `03-geometry-layout.md` §2.2):
+(2-input gates at default `size=50`; see `(the measured geometry is in component-catalog.json; query it with compdb)` §2.2):
 
 | Library | `name` | Defaults | Ports |
 |---|---|---|---|
@@ -351,7 +351,7 @@ an unintended net merge. Tunnels remove the failure mode rather than making it l
 
 > **Recommended default for all generated combinational logic: route through tunnels.** Keep wires
 > to short, single-purpose stubs between a port and its tunnel. See
-> `03-geometry-layout.md` §5 for the exact stub pattern.
+> `(the measured geometry is in component-catalog.json; query it with compdb)` §5 for the exact stub pattern.
 
 ### ⚠️ Subcircuit port offsets are rescaled — do not hand-compute them
 
@@ -366,7 +366,7 @@ xor2 loc=(500,100) bounds=[x=469 y=89 w=32 h=32]
 ```
 
 The authored 40-px pin gap becomes a 10-px gap; only the pins' **relative order** survives.
-`00-probe-log.md` §5's claim that inputs sit at "the pin's own authored coordinate" did **not**
+ §5's claim that inputs sit at "the pin's own authored coordinate" did **not**
 reproduce. Also `[UNVERIFIED]`: feeding a parent `Pin` from a subcircuit output gave `E` on every
 row here, cause not established.
 
@@ -399,5 +399,5 @@ questions into measurements. Two gotchas, both hit here:
 | U3 | Exclusive `desc` strings for `#Plexers`, `#Arithmetic`, `#Memory`, `#I/O` | Required to declare `<lib>` correctly |
 | U4 | Whether `Tunnel` nets require matching widths, and tunnel label validation | Would let us eliminate most routing risk |
 | U5 | `Splitter` geometry and bus semantics | Needed for buses/4-bit datapaths |
-| U6 | Subcircuit input-port rule (pin's own coordinate claim in `00-probe-log.md` §5) | The 4-bit adder will likely use subcircuits |
+| U6 | Subcircuit input-port rule (pin's own coordinate claim in  §5) | The 4-bit adder will likely use subcircuits |
 | U7 | Behaviour of `-Dstdout.encoding` / reading stdout as GBK vs UTF-8 | Only matters if `--locale` is ever omitted |

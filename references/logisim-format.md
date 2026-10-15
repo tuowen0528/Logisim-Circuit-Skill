@@ -5,8 +5,8 @@ Every claim carries a `file:line` citation against
 `logisim-evolution-main\src\main\java\com\cburch\logisim\...`.
 Anything I could not determine is marked `[UNVERIFIED]` and **must not** be relied on by a generator.
 
-Companion files: `03-geometry-layout.md` (coordinates/connectivity), `docs\CAPABILITIES.md`
-(what the CLI can actually do), `00-probe-log.md` (Lead's empirical probes).
+Companion files: `(the measured geometry is in component-catalog.json; query it with compdb)` (coordinates/connectivity), `docs/internals/CAPABILITIES.md`
+(what the CLI can actually do),  (Lead's empirical probes).
 
 ---
 
@@ -137,7 +137,7 @@ Consequences a generator must respect:
 ### Authoritative library and component names
 
 Enumerated from the running jar by instantiating every registered `AddTool` (14 libraries,
-188 component names). Full table: `docs\CAPABILITIES.md` §7.
+188 component names). Full table: `docs/internals/CAPABILITIES.md` §7.
 
 | Library `desc` | Library id | Examples of component `name` |
 |---|---|---|
@@ -162,7 +162,7 @@ before use.
 > `compAbsentError` at `XmlCircuitReader.java:86-92` / `XmlReader.java:571`), but the file **still
 > loads** and the remaining circuit **still simulates**. A generator that misspells
 > `"AND Gate"` as `"AND"` gets a file that opens, prints a truth table, and is silently missing the
-> gate. Measured in `00-probe-log.md` §3:
+> gate. Measured in  §3:
 >
 > ```
 > $ java ... --tty stats and1.circ     # name="AND" (wrong)
@@ -171,7 +171,7 @@ before use.
 > ```
 >
 > Mitigation is mandatory in our loop: **`--tty stats` after every generation**, and compare the
-> component histogram to what was intended. See `docs\CAPABILITIES.md` §5 (false-pass modes).
+> component histogram to what was intended. See `docs/internals/CAPABILITIES.md` §5 (false-pass modes).
 
 ---
 
@@ -191,11 +191,11 @@ before use.
 subcircuit with input pins at `(100,80)`/`(100,120)` and output at `(300,100)`, instantiated at
 `loc=(500,100)`: ports report `(-30,0)` and `(-30,10)` relative to the instance, with the output at
 `(0,0)` — the authored 40-px pin gap collapses to 10 px, and only the pins' **relative order**
-survives. This contradicts the "pin's own authored coordinate" reading in `00-probe-log.md` §5.
-See `03-geometry-layout.md` §6.
+survives. This contradicts the "pin's own authored coordinate" reading in  §5.
+See `(the measured geometry is in component-catalog.json; query it with compdb)` §6.
 
 > **Generator rule:** never compute subcircuit port offsets by arithmetic on the subcircuit's pin
-> coordinates. Either build a flat tunnel-based netlist (`03-geometry-layout.md` §5 — verified
+> coordinates. Either build a flat tunnel-based netlist (`(the measured geometry is in component-catalog.json; query it with compdb)` §5 — verified
 > working on a 1-bit full adder), or read the offsets off the loaded instance.
 
 ---
@@ -258,9 +258,9 @@ file does **not** matter.
 | Unknown attributes are ignored (not an error) | VERIFIED — loop is driven by the component's list |
 | Unknown top-level element is a hard `IllegalArgumentException` | VERIFIED — `XmlReader.java:550` |
 | Writer escapes special characters | VERIFIED by construction (DOM serialiser); no custom escape code |
-| Whether *every* attribute name/type is what a generator expects | `[UNVERIFIED]` per component — enumerate from each factory's `AttributeSet`; `docs\CAPABILITIES.md` §7 lists defaults for all components |
+| Whether *every* attribute name/type is what a generator expects | `[UNVERIFIED]` per component — enumerate from each factory's `AttributeSet`; `docs/internals/CAPABILITIES.md` §7 lists defaults for all components |
 | Exact `desc` strings for `#Plexers`, `#Arithmetic`, `#Memory`, `#I/O` | `[UNVERIFIED]` — read each library's descriptor before emitting |
-| `size`-dependence and `facing`/negation port rotation | geometry — see `03-geometry-layout.md` §2.2 |
+| `size`-dependence and `facing`/negation port rotation | geometry — see `(the measured geometry is in component-catalog.json; query it with compdb)` §2.2 |
 
 ## The `facing` rule for Tunnels — measured, and stated as a principle
 
@@ -287,7 +287,7 @@ keeps producing the wrong picture. Do not memorise the table — ask one questio
 | an **output Pin** (`facing="west"`, so the pin body extends LEFT) | the **left** | `west` |
 | a driver stub just right of a gate output or input Pin | the **left** | `west` |
 
-`rtllib.py` and `circmodel.py` implement this as `tunnel_facing(neighbour_on_the_right)`, so the
+`generator.py` and `generator.py` implement this as `tunnel_facing(neighbour_on_the_right)`, so the
 question is asked at each call site rather than a constant being reused. Before that fix the output-pin
 Tunnel was emitted with `east`, which drew its glyph straight over the pin body.
 

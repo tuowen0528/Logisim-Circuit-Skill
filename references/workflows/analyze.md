@@ -26,7 +26,7 @@ correct".
 ## 2. Read the structure
 
 ```powershell
-py scripts\py\circmodel.py describe path\to\circuit.circ
+py scripts\py\generator.py describe path\to\circuit.circ
 ```
 
 Reports what is literally in the file — library declarations, components with their attributes,

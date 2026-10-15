@@ -87,7 +87,7 @@ net 't' wire ((390, 520), (390, 310)) passes through port (390, 350) owned by ['
 ## Step 3 — Build
 
 ```powershell
-py scripts\py\seqmodel.py build examples\specs\seq\seq_tff.json examples\generated\seq_tff.circ
+py scripts\py\verify_clocked.py build examples\specs\seq\seq_tff.json examples\generated\seq_tff.circ
 ```
 
 Exit `3` means the spec was refused. **Do not work around it** — fix the spec.
@@ -95,7 +95,7 @@ Exit `3` means the spec was refused. **Do not work around it** — fix the spec.
 ## Step 4 — Verify the state sequence
 
 ```powershell
-py scripts\py\seqmodel.py verify examples\specs\seq\seq_tff.json examples\generated\seq_tff.circ `
+py scripts\py\verify_clocked.py verify examples\specs\seq\seq_tff.json examples\generated\seq_tff.circ `
    --seconds 3 --cycles 12
 ```
 
@@ -116,8 +116,8 @@ py scripts\py\seqmodel.py verify examples\specs\seq\seq_tff.json examples\genera
 Build a variant that should **not** work and confirm it reports `failed`:
 
 ```powershell
-py scripts\py\seqmodel.py build  examples\specs\seq\seq_tff_broken.json examples\generated\seq_tff_broken.circ
-py scripts\py\seqmodel.py verify examples\specs\seq\seq_tff_broken.json examples\generated\seq_tff_broken.circ
+py scripts\py\verify_clocked.py build  examples\specs\seq\seq_tff_broken.json examples\generated\seq_tff_broken.circ
+py scripts\py\verify_clocked.py verify examples\specs\seq\seq_tff_broken.json examples\generated\seq_tff_broken.circ
 # expect exit 1: "only 1 row means the output NEVER CHANGED during the whole run"
 ```
 

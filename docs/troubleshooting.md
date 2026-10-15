@@ -104,7 +104,7 @@ Ask **where the neighbour is** and point the glyph away from it:
 
 Measured: `west` draws the body to the **RIGHT** of the port, `east` to the **LEFT**. The names are
 inverted relative to what they draw — which is exactly why the rule is stated as "away from the
-neighbour" instead of as a table to memorise. `rtllib.py`/`circmodel.py` do this through
+neighbour" instead of as a table to memorise. `generator.py`/`generator.py` do this through
 `tunnel_facing(neighbour_on_the_right)`.
 
 ## The schematic is unreadable but it simulates fine

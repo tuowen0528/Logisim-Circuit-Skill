@@ -19,9 +19,9 @@ What it can repair, and what it cannot, is stated explicitly in `SUPPORTED`. Any
 list is reported as unsupported rather than guessed at.
 
 Usage:
-    py repair.py --kind comb --broken generated/mux2_broken.circ `
-                 --spec specs/comb/mux2_broken.json `
-                 --control specs/comb/mux2.json [--json]
+    py repair.py --kind comb --broken examples/generated/mux2_broken.circ `
+                 --spec tests/specs/comb/mux2_broken.json `
+                 --control tests/specs/comb/mux2.json [--json]
 Exit: 0 = a proven repair was found, 1 = none found, 2 = harness error.
 """
 from __future__ import annotations
@@ -45,22 +45,20 @@ if __name__ == '__main__':
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 PY = sys.executable
-GEN = ROOT / "scripts" / "py" / "circmodel.py"
-RTL = ROOT / "scripts" / "py" / "rtllib.py"
-SEQ = ROOT / "scripts" / "py" / "seqmodel.py"
+GEN = ROOT / "scripts" / "py" / "ir.py"
+RTL = ROOT / "scripts" / "py" / "generator.py"
+GEN = ROOT / "scripts" / "py" / "generator.py"
 VM = ROOT / "scripts" / "py" / "verify_model.py"
 
 # Honest scope. Expand only with a spec that verifies the expansion.
 SUPPORTED = {
-    "comb": "combinational specs built by circmodel (gates + tunnels)",
+    "comb": "combinational specs built by ir (gates + tunnels)",
     "rtl": "RTL specs built by rtllib (Multiplexer/Decoder/Adder/Comparator + gates)",
     "seq": "sequential specs built by seqmodel (clocked)",
 }
 
-
 class HarnessError(Exception):
     pass
-
 
 def build(kind: str, spec: pathlib.Path, out: pathlib.Path) -> Tuple[int, str]:
     tool = {"comb": RTL if kind == "rtl" else GEN, "rtl": RTL, "seq": SEQ}[kind]
@@ -68,7 +66,6 @@ def build(kind: str, spec: pathlib.Path, out: pathlib.Path) -> Tuple[int, str]:
                        capture_output=True, text=True, encoding="utf-8",
                        errors="replace", timeout=300)
     return r.returncode, (r.stdout or "") + (r.stderr or "")
-
 
 def verify_comb(circ: pathlib.Path, spec: pathlib.Path) -> Tuple[int, dict]:
     r = subprocess.run([PY, str(VM), str(circ), "--spec", str(spec)],
@@ -79,10 +76,9 @@ def verify_comb(circ: pathlib.Path, spec: pathlib.Path) -> Tuple[int, dict]:
     except json.JSONDecodeError:
         return 2, {"status": "harness_error", "raw": (r.stdout or "")[:400]}
 
-
 def verify_seq(circ: pathlib.Path, spec: pathlib.Path, seconds: float,
                cycles: int) -> Tuple[int, dict]:
-    r = subprocess.run([PY, str(SEQ), "verify", str(spec), str(circ),
+    r = subprocess.run([PY, str(GEN), "verify", str(spec), str(circ),
                         "--seconds", str(seconds), "--cycles", str(cycles)],
                        capture_output=True, text=True, encoding="utf-8",
                        errors="replace", timeout=600)
@@ -90,7 +86,6 @@ def verify_seq(circ: pathlib.Path, spec: pathlib.Path, seconds: float,
         return r.returncode, json.loads(r.stdout)
     except json.JSONDecodeError:
         return 2, {"status": "harness_error", "raw": (r.stdout or "")[:400]}
-
 
 def spec_is_sequential(spec_path: pathlib.Path) -> bool:
     """Decide the verifier from the SPEC, not from a caller flag.
@@ -107,13 +102,11 @@ def spec_is_sequential(spec_path: pathlib.Path) -> bool:
     return any(p.get("kind") in ("CLOCK", "DFF", "TFF", "JKFF", "SRFF", "REG")
                for p in d.get("parts", []))
 
-
 def status_of(kind: str, circ: pathlib.Path, spec: pathlib.Path,
               seconds: float, cycles: int) -> Tuple[int, dict]:
     if spec_is_sequential(spec):
         return verify_seq(circ, spec, seconds, cycles)
     return verify_comb(circ, spec)
-
 
 # --------------------------------------------------------------------------------------------
 # Candidate edit kinds. Each returns a NEW spec dict, or None if it does not apply.
@@ -162,7 +155,6 @@ def candidates_swap_ops(spec: dict) -> List[Tuple[str, dict]]:
                 out.append((f"swap mux {m['ref']} inputs {a}<->{b}", new))
     return out
 
-
 def candidates_invert_gate(spec: dict) -> List[Tuple[str, dict]]:
     """Change one gate to its dual (AND<->OR, XOR<->XNOR, NAND<->NOR).
 
@@ -180,7 +172,6 @@ def candidates_invert_gate(spec: dict) -> List[Tuple[str, dict]]:
             new["parts"][idx]["gate"] = DUAL[g]
             out.append((f"change gate {p['ref']} {g} -> {DUAL[g]}", new))
     return out
-
 
 def candidates_tie_value(spec: dict) -> List[Tuple[str, dict]]:
     """Flip a tied constant (0 <-> 1).
@@ -204,7 +195,6 @@ def candidates_tie_value(spec: dict) -> List[Tuple[str, dict]]:
                             f"{new['parts'][idx]['value']}", new))
     return out
 
-
 def candidates_dimension(spec: dict) -> List[Tuple[str, dict]]:
     """Change a component's width - catches the classic wrong-bit-width defect."""
     out: List[Tuple[str, dict]] = []
@@ -220,14 +210,12 @@ def candidates_dimension(spec: dict) -> List[Tuple[str, dict]]:
             out.append((f"width {p['ref']} {w} -> {int(w) + delta}", new))
     return out
 
-
 CANDIDATE_KINDS = {
     "swap_mux_inputs": candidates_swap_ops,
     "dual_gate": candidates_invert_gate,
     "flip_constant": candidates_tie_value,
     "change_width": candidates_dimension,
 }
-
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Bounded, proven repair: try candidate fixes, keep "
@@ -296,7 +284,7 @@ def main() -> int:
     winner: Optional[dict] = None
 
     # Which spec FORMAT did we get? The candidate generators understand the `parts` format used by
-    # rtllib/seqmodel. The older `gates` format (circmodel) puts gates in a separate list with a
+    # rtllib/seqmodel. The older `gates` format (ir) puts gates in a separate list with a
     # different shape, so none of them apply. Saying so beats returning an empty search that looks
     # like "we tried everything and nothing worked".
     spec_format = "parts" if spec.get("parts") is not None else (
@@ -398,7 +386,6 @@ def main() -> int:
             print("no single edit from the declared candidates fixed the circuit")
         print(f"control     : {control_state}")
     return 0 if winner else 1
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

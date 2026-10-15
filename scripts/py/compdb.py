@@ -32,8 +32,8 @@ import sys
 if __name__ == '__main__':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True)
 
-# Resolved from this module location so the package runs from any
-# working directory.
+# package root, resolved from this file so the package is portable
+import os
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 KB_PATH = ROOT / 'references' / 'component-catalog.json'
 
@@ -41,12 +41,10 @@ LIBS = ['Wiring', 'Gates', 'Plexers', 'Arithmetic', 'FPArithmetic', 'Memory']
 LIB_DISPLAY = {'Wiring': '#Wiring', 'Gates': '#Gates', 'Plexers': '#Plexers',
                'Arithmetic': '#Arithmetic', 'FPArithmetic': '#FPArithmetic', 'Memory': '#Memory'}
 
-
 def kb():
     if not KB_PATH.exists():
-        raise SystemExit(f'missing {KB_PATH}')
+        raise SystemExit(f'missing {KB_PATH} - run ')
     return json.loads(KB_PATH.read_text(encoding='utf-8'))
-
 
 def find(d, name):
     """Exact XML-name lookup. Case-insensitive fallback is reported, never applied silently."""
@@ -70,7 +68,6 @@ def find(d, name):
     if cand:
         msg += f'; did you mean: {", ".join(sorted(cand)[:6])}'
     raise SystemExit(msg)
-
 
 def parse_attrs(d, c, specs):
     """Validate --attr names against the MEASURED attribute set and values against legal values."""
@@ -104,7 +101,6 @@ def parse_attrs(d, c, specs):
         out[k] = v
     return out
 
-
 def ports_for(c, attrs):
     """Ports under a setting.
 
@@ -128,7 +124,6 @@ def ports_for(c, attrs):
     return None, (f'NOT MEASURED for {attrs} - the sweeps vary one attribute at a time from its '
                   f'default, so a combination is unknown. Do not guess: build a bench and measure.')
 
-
 def fmt_attr(a):
     bits = [f"{a['name']:16} {a['impl']:22} default={a['default']}"]
     if 'legal_values' in a:
@@ -140,7 +135,6 @@ def fmt_attr(a):
     if a.get('choice_arrays', {}).get('choices'):
         bits.append(f"choices={a['choice_arrays']['choices'][:8]}")
     return '\n      '.join(bits)
-
 
 def cmd_libs(d, a):
     tot = 0
@@ -156,7 +150,6 @@ def cmd_libs(d, a):
     print(f"  measured: {d['totals']['attributes']} attributes, "
           f"{d['totals']['geometry_sweeps']} geometry sweeps, {d['totals']['gap_count']} gaps")
 
-
 def cmd_list(d, a):
     libs = [a.lib] if a.lib else LIBS
     for lib in libs:
@@ -169,6 +162,43 @@ def cmd_list(d, a):
             print(f'      {n:24} {len(c["attributes"]):2} attrs  {len(c["ports_default"]):2} ports  {fa}')
         print()
 
+def cmd_purposes(d, a):
+    """Every component's one-line purpose, so an agent can learn the whole catalogue in one call.
+
+    `show` answers "what is this component"; this answers "what components are there and what does each
+    one do", which is the question an agent actually starts with. The traps are printed too, because
+    they are the difference between using a component and using it correctly.
+    """
+    want = [a.lib] if getattr(a, 'lib', None) else LIBS
+    shown = 0
+    for lib in want:
+        if lib not in LIBS:
+            raise SystemExit(f'unknown library {lib!r}; known: {LIBS}')
+        C = d['libraries'][lib]['components']
+        print(f'  === {lib} ({len(C)}) ===')
+        for n in sorted(C):
+            c = C[n]
+            p = c.get('purpose') or '(no purpose recorded)'
+            print(f'  {n}')
+            print(f'      {p}')
+            if getattr(a, 'traps', False) and c.get('traps'):
+                print(f'      ! {c["traps"]}')
+            shown += 1
+        print()
+    print(f'  {shown} components. `compdb show <name>` for attributes, ports and geometry.')
+
+def cmd_purposes_traps(d, a):
+    """Every recorded trap, on its own. These are the silent-failure modes."""
+    n = 0
+    for lib in LIBS:
+        for name in sorted(d['libraries'][lib]['components']):
+            c = d['libraries'][lib]['components'][name]
+            if not c.get('traps'):
+                continue
+            print(f'  [{lib}] {name}')
+            print(f'      {c["traps"]}')
+            n += 1
+    print(f'\n  {n} components have a recorded trap.')
 
 def cmd_show(d, a):
     lib, c, exact = find(d, a.component)
@@ -176,6 +206,26 @@ def cmd_show(d, a):
         print(f'  NOTE: matched case-insensitively; the XML name is exactly {c["xml_name"]!r}')
     print(f'  {c["xml_name"]}   [{lib}]   display "{c["display_name"]}"')
     print(f'  factory class : {c["factory_class"]}')
+
+    # WHAT IT DOES AND HOW TO USE IT. Without these the entry says a component exists and what its
+    # ports are, and says nothing about what it computes - which is how a circuit gets built that
+    # loads, simulates, and computes the wrong thing.
+    if c.get('purpose'):
+        print(f'  purpose       : {c["purpose"]}')
+    if c.get('usage'):
+        print(f'  usage         : {c["usage"]}')
+    if c.get('traps'):
+        print(f'  ⚠ traps       : {c["traps"]}')
+    if c.get('behaviour_at'):
+        print(f'  behaviour at  : {c["behaviour_at"]}')
+    sv = c.get('sim_verified')
+    if sv:
+        print(f'  VERIFIED      : {sv["rows_compared"]} rows compared against an independent golden '
+              f'expression, in the real simulator  (cases: {", ".join(sv["cases"])})')
+    else:
+        print(f'  VERIFIED      : NO - the recorded behaviour has not been proven by simulation. '
+              f'Treat it as a sourced claim, not a measured one.')
+
     print(f'  rotatable     : {"yes - has facing" if any(x["name"]=="facing" for x in c["attributes"]) else "NO - orientation is fixed"}')
     print(f'  appearance    : {"present" if any(x["name"]=="appearance" for x in c["attributes"]) else "absent"}')
     print(f'  attributes    : {len(c["attributes"])}')
@@ -196,7 +246,6 @@ def cmd_show(d, a):
         for g in c['gaps']:
             print(f'  ⚠ GAP: {g}')
 
-
 def cmd_ports(d, a):
     lib, c, _ = find(d, a.component)
     attrs = parse_attrs(d, c, a.attr)
@@ -211,7 +260,6 @@ def cmd_ports(d, a):
     print(f'  {"offset":>16} {"width":>6}  type')
     for p in ports:
         print(f'    d=({p["dx"]:>5},{p["dy"]:>5}) {p["width"]:>6}  {p["type"]}')
-
 
 def cmd_check(d, a):
     pairs = []
@@ -229,7 +277,6 @@ def cmd_check(d, a):
         print(f'  ports ({how}):')
         for p in ports:
             print(f'    d=({p["dx"]:>5},{p["dy"]:>5}) width={p["width"]:<3} {p["type"]}')
-
 
 def cmd_traps(d, a):
     idx = json.loads((ROOT / 'references' / 'component-index.json').read_text(encoding='utf-8'))
@@ -249,11 +296,9 @@ def cmd_traps(d, a):
         if fixed:
             print(f'    [{lib}] {len(fixed)}: {", ".join(sorted(fixed))}')
 
-
 def cmd_where(d, a):
     lib, c, _ = find(d, a.component)
     print(f'  {c["xml_name"]} -> library {lib} (file lib desc {LIB_DISPLAY[lib]})')
-
 
 def cmd_bench(d, a):
     import subprocess
@@ -265,7 +310,6 @@ def cmd_bench(d, a):
     print(r.stdout or r.stderr)
     return r.returncode
 
-
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -273,6 +317,11 @@ def main() -> int:
 
     p = sub.add_parser('libs'); p.set_defaults(fn=cmd_libs)
     p = sub.add_parser('list'); p.add_argument('--lib'); p.set_defaults(fn=cmd_list)
+    p = sub.add_parser('purposes', help='every component and what it does')
+    p.add_argument('--lib'); p.add_argument('--traps', action='store_true')
+    p.set_defaults(fn=cmd_purposes)
+    p = sub.add_parser('alltraps', help='every recorded silent-failure mode')
+    p.set_defaults(fn=cmd_purposes_traps)
     p = sub.add_parser('show'); p.add_argument('component'); p.set_defaults(fn=cmd_show)
     p = sub.add_parser('ports'); p.add_argument('component')
     p.add_argument('--attr', action='append', default=[]); p.set_defaults(fn=cmd_ports)
@@ -289,7 +338,6 @@ def main() -> int:
         return 0
     d = kb() if a.cmd != 'bench' or True else None
     return a.fn(d, a) or 0
-
 
 if __name__ == '__main__':
     raise SystemExit(main())

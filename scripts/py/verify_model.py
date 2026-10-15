@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import argparse
 import io
-import os
 import json
 import re
 import subprocess
@@ -29,26 +28,20 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-
+# Only wrap when RUN, never when imported: a second wrapper around the
 # same buffer closes the underlying stream when collected, and every
 # later print then raises "I/O operation on closed file".
 if __name__ == '__main__':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True)
 
-# --- Logisim JAR location (imports placed here so the order cannot break) ---
-import os
-import pathlib
-_LOCAL_JAR = Path(__file__).resolve().parents[1] / "bin" / "logisim-evolution-all.jar"
+JAR = Path(__file__).resolve().parents[1] / "bin" / "logisim-evolution-all.jar"
 
-JAR = pathlib.Path(os.environ.get("LOGISIM_JAR") or str(_LOCAL_JAR))
 # Measured: width <= 6 renders binary, width >= 7 renders 0x-prefixed hex (TtyInterface.java:205).
 HEX_MIN_WIDTH = 7
 _UNDEFINED_RE = re.compile(r"^(U|E|Z|X|x)+$")
 
-
 class HarnessError(Exception):
     """The run produced no usable evidence. Must never be reported as a pass."""
-
 
 def decode_cli_output(raw: bytes) -> str:
     """The CLI writes UTF-16LE+BOM when stdout is redirected here; fall back to UTF-8/GBK."""
@@ -62,7 +55,6 @@ def decode_cli_output(raw: bytes) -> str:
         except UnicodeDecodeError:
             continue
     raise HarnessError("could not decode CLI output")
-
 
 def simulate(circuit: Path, timeout: int = 300) -> Tuple[List[Tuple[str, int]], List[List[Optional[int]]]]:
     cmd = ["java", "-Djava.awt.headless=true", "-jar", str(JAR),
@@ -111,12 +103,11 @@ def simulate(circuit: Path, timeout: int = 300) -> Tuple[List[Tuple[str, int]], 
                 #
                 # So the multi-bit INPUT-vector ordering is NOT a decode problem here; the one
                 # circuit that disagrees is the Comparator, and that is recorded as its own open
-                # defect (references/00-probe-log.md section 29) rather than fixed by flipping a
+
                 # convention that four other specs depend on.
                 row.append(int(tok, 2))
         rows.append(row)
     return pins, rows
-
 
 def load_model(spec: dict, spec_path: Path):
     if "model" in spec:
@@ -133,12 +124,20 @@ def load_model(spec: dict, spec_path: Path):
     if "expression" in spec:
         exprs = spec["expression"]
 
+        # A small ALLOWLIST of helpers. `eval` is called with `__builtins__` emptied so a spec cannot
+        # reach the filesystem or the interpreter, but that also removes `min`, `max`, `abs` and `int` -
+        # and a golden expression like `min(A,B)` then fails as a harness error, which looks like a
+        # broken circuit rather than a missing function. These four are pure and cannot escape.
+        _SAFE = {"min": min, "max": max, "abs": abs, "int": int, "sum": sum, "bin": bin,
+                 "round": round, "len": len}
+
         def model(inputs: dict, widths: dict) -> dict:
-            return {k: int(eval(v, {"__builtins__": {}}, dict(inputs))) for k, v in exprs.items()}
+            ns = dict(_SAFE)
+            ns.update(inputs)
+            return {k: int(eval(v, {"__builtins__": {}}, ns)) for k, v in exprs.items()}
 
         return model
     raise HarnessError("spec must provide either 'model' or 'expression'")
-
 
 def main() -> int:
     ap = argparse.ArgumentParser()
@@ -205,8 +204,23 @@ def main() -> int:
         return 2
 
     mismatches = []
+    skipped = []
+    # A case may declare rows it does NOT claim. `skip_when` is a Python expression over the input
+    # names; a row where it is truthy is counted as SKIPPED, not as passed.
+    #
+    # This exists because of floating point. A NaN operand's payload is preserved by Java's
+    # floatToMiniFloat143 through bits 22..20 of a float significand, and the pattern a NaN takes
+    # through a Java float operation is not reproducible from Python - so 13 of an FPNegator's 256 rows
+    # are genuinely not claimed. Counting them as passes would be false; counting them as failures
+    # would bury a model that is exactly right on every other row.
+    skip_expr = spec.get('skip_when')
+    skip_code = compile(skip_expr, '<skip_when>', 'eval') if skip_expr else None
+
     for r, row in enumerate(rows, 1):
         inputs = {n: row[idx[n]] for n in in_names}
+        if skip_code is not None and eval(skip_code, {"__builtins__": {}}, dict(inputs)):
+            skipped.append(r)
+            continue
         if any(v is None for v in inputs.values()):
             mismatches.append({"row": r, "reason": "an INPUT is undefined", "inputs": inputs})
             continue
@@ -231,14 +245,15 @@ def main() -> int:
         "pins": names,
         "rows": len(rows),
         "expected_rows": expected_rows,
-        "passed": len(rows) - len(bad_rows),
+        "passed": len(rows) - len(bad_rows) - len(skipped),
         "failed": len(bad_rows),
+        "skipped": len(skipped),
+        "skip_reason": skip_expr or None,
         "output_mismatches": len(mismatches),
         "mismatches": mismatches[:20],
     }
     print(json.dumps(result, indent=2))
     return 1 if mismatches else 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

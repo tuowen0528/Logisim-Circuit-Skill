@@ -6,7 +6,7 @@ fool yourself.
 ## Before you start
 
 - Resolve the paths below against the project root.
-- Read `references/00-probe-log.md` §1 (the table format) and §9 (the symptom dictionary).
+- Read  §1 (the table format) and §9 (the symptom dictionary).
 - Know the required function as an **independent model** (integer arithmetic, a spec, a truth table).
 
 ## Step 1 — Confirm the components actually loaded

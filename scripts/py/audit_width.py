@@ -41,11 +41,11 @@ from typing import Dict, List, Optional, Set, Tuple
 
 # Make stdout UTF-8 safe exactly once per process. Wrapping repeatedly closes the shared buffer
 # (a previous wrapper gets collected and its finalizer closes it), which shows up as
-# "I/O operation on closed file" in unrelated modules. circmodel owns the one-shot helper; fall
+# "I/O operation on closed file" in unrelated modules. ir owns the one-shot helper; fall
 # back to a local guard so this tool also works standalone.
 try:
     sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-    import circmodel as _cm
+    import ir as _cm
     _cm.ensure_utf8_stdout()
 except Exception:                                    # pragma: no cover - defensive
     if not getattr(sys.stdout, "_dsh_utf8", False):
@@ -58,30 +58,27 @@ except Exception:                                    # pragma: no cover - defens
         sys.stdout._dsh_utf8 = True
 
 # ----------------------------------------------------------------------------------------------
-# Component port tables (measured; see references/00-probe-log.md sections 4, 14, 16)
+# Component port tables (measured; see  sections 4, 14, 16)
 # ----------------------------------------------------------------------------------------------
 
 GATE_NAMES = {"AND Gate", "OR Gate", "NAND Gate", "NOR Gate",
               "XOR Gate", "XNOR Gate", "NOT Gate", "Buffer", "Odd Parity", "Even Parity"}
-# Gate input offsets live in circmodel.input_ports (one measured table).
-
+# Gate input offsets live in cm.gate_input_ports (one measured table).
 
 def gate_input_offsets(name: str, n: int, size: int):
-    """Gate input offsets, delegated to circmodel's MEASURED table.
+    """Gate input offsets, delegated to ir's MEASURED table.
 
     This used to be a SECOND COPY of the rule `-(size + 10) if name in WIDE_GATES else -size`, which
     was wrong for NAND and NOR (measured -60, not -50). The auditor therefore looked for their inputs
     10 px from where they are and reported nets as undriven on a circuit that passes 1,048,576/1,048,
     576 real simulated combinations. One measured table, one owner.
 
-    circmodel raises for a gate it has no measurement for, and that exception is allowed to propagate:
+    ir raises for a gate it has no measurement for, and that exception is allowed to propagate:
     a gate whose geometry is unknown must not be audited against a guess.
     """
-    import circmodel as cm
-    base = cm.input_ports(name, (0, 0), n, size)
+    import ir as cm
+    base = cm.gate_input_ports(name, (0, 0), n, size)
     return [(x, y) for (x, y) in base]
-
-
 
 class Endpoint:
     __slots__ = ("kind", "ref", "port", "coord", "width")
@@ -93,7 +90,6 @@ class Endpoint:
         self.coord = coord
         self.width = width
 
-
 def parse_loc(text: Optional[str]):
     if not text:
         return None
@@ -102,7 +98,6 @@ def parse_loc(text: Optional[str]):
         return int(x), int(y)
     except (ValueError, AttributeError):
         return None
-
 
 def analyse(path: pathlib.Path) -> dict:
     root = ET.fromstring(path.read_bytes())
@@ -136,7 +131,7 @@ def analyse(path: pathlib.Path) -> dict:
                 size = int(attrs.get("size", 50))
                 endpoints.append(Endpoint("gate", f"{name}@{loc}", "out", loc, w))
                 # Port NAMING must match the generator, and match across BOTH generators:
-                #   circmodel / rtllib emit gates and refer to inputs as `in<i>`;
+                #   ir / rtllib emit gates and refer to inputs as `in<i>`;
                 #   seqmodel emits a NOT gate and refers to it as `in` / `out`.
                 # Naming them only `in<i>` here made the auditor miss the inverter entirely and
                 # report a driven net as having NO driver. Accept both spellings by emitting the
@@ -250,7 +245,6 @@ def analyse(path: pathlib.Path) -> dict:
             out["problems"].append(p)
     return out
 
-
 # ----------------------------------------------------------------------------------------------
 # Net reconstruction by union-find over coordinates and tunnel labels
 # ----------------------------------------------------------------------------------------------
@@ -270,7 +264,6 @@ class DSU:
         ra, rb = self.find(a), self.find(b)
         if ra != rb:
             self.p[rb] = ra
-
 
 def solve(cname, endpoints, tunnels, wires, opaque=()):
     dsu = DSU()
@@ -399,7 +392,6 @@ def solve(cname, endpoints, tunnels, wires, opaque=()):
                      "n_wires": len(g["coords"])})
     return problems, nets
 
-
 def is_driver(e: Endpoint) -> bool:
     """Does this port SOURCE a value onto the net?
 
@@ -434,7 +426,6 @@ def is_driver(e: Endpoint) -> bool:
             return True
         return False
     return False
-
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Audit .circ nets for width problems (structural).")
@@ -485,7 +476,6 @@ def main() -> int:
     print()
     print(f"files: {len(results)}   with problems: {bad}")
     return 1 if bad else 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

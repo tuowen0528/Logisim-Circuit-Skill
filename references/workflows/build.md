@@ -1,5 +1,12 @@
 # Workflow: build a circuit from a specification (the general path)
 
+## What this tool is
+
+A **generation and troubleshooting tool** for `.circ` files: it turns a design you have already worked
+out into valid XML, and proves whether the result behaves. It does not choose the architecture, and it
+has no built-in templates for adders, ALUs or CPUs — every circuit is expressed through the spec you
+write.
+
 Use this when the requirement is **not** one of the pre-named specs. It builds any combinational
 circuit from a declarative spec, emits valid `.circ`, and verifies it against an independent model.
 
@@ -49,7 +56,7 @@ implementation would agree with the implementation's bugs.
 ## Step 2 — Build
 
 ```powershell
-py scripts\py\circmodel.py build examples\specs\comb\mux2.json examples\generated\mux2.circ
+py scripts\py\generator.py build examples\specs\comb\mux2.json examples\generated\mux2.circ
 ```
 
 The builder refuses to write a circuit whose placement would be **silently wrong** (see step 3), so a
@@ -93,7 +100,7 @@ which is not a pass**.
 Build a deliberately wrong variant and confirm the verifier reports `failed`:
 
 ```powershell
-py scripts\py\circmodel.py build examples\specs\comb\mux2_broken.json examples\generated\mux2_broken.circ
+py scripts\py\generator.py build examples\specs\comb\mux2_broken.json examples\generated\mux2_broken.circ
 py scripts\py\verify_model.py examples\generated\mux2_broken.circ --spec examples\specs\comb\mux2_broken.json
 # expect exit 1 with a non-zero failed count
 ```
@@ -105,7 +112,7 @@ A pass with no negative control is not evidence.
 The same module reads any `.circ` into the same data model, without inferring function:
 
 ```powershell
-py scripts\py\circmodel.py describe examples\user_samples\Half_Adder.circ
+py scripts\py\generator.py describe examples\user_samples\Half_Adder.circ
 ```
 
 ## Worked examples in this repo
@@ -126,7 +133,7 @@ simulation tests.
 - **Combinational only, for this path.** The spec language has no clocked components, and
   `verify_model.py` compares a truth table, so it cannot check state sequences. Clocked simulation
   *is* achievable — add a pin labelled `halt` (see `SKILL.md` and
-  `references/00-probe-log.md` §14) — but a spec-driven **sequential** verifier does not exist yet.
+   §14) — but a spec-driven **sequential** verifier does not exist yet.
 - **Exhaustive, so it is bounded by `2**(input bits)`.** Beyond roughly 2^17 rows this is not
   practical; a wide circuit needs a different mechanism that does not exist yet.
 - **Gate kinds are limited** to the eight above. `Splitter`, `Multiplexer`, `Adder`, memory and I/O

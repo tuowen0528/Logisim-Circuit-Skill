@@ -41,8 +41,8 @@ import pathlib
 import re
 import sys
 
-# Resolved from this module location so the package runs from any
-# working directory.
+# package root, resolved from this file so the package is portable
+import os
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 # Only wrap when RUN, never when imported. `geom` and the builders already make stdout UTF-8 safe;
 # a second wrapper around the same buffer closes the underlying stream when collected, and every
@@ -54,10 +54,8 @@ sys.path.insert(0, str(ROOT / 'scripts' / 'py'))
 
 Point = tuple
 
-
 # ---------------------------------------------------------------------------------------------
 # union-find over lattice points
-
 
 class UF:
     def __init__(self):
@@ -87,9 +85,7 @@ class UF:
             out[self.find(x)].add(x)
         return out
 
-
 # ---------------------------------------------------------------------------------------------
-
 
 def lattice_points(a, b):
     """Every lattice point on segment a-b, ends included. Wires are axis-aligned in Logisim."""
@@ -99,7 +95,6 @@ def lattice_points(a, b):
     if x0 == x1:
         return [(x0, y) for y in range(min(y0, y1), max(y0, y1) + 1)]
     return [a, b]
-
 
 def collinear_overlap(a1, b1, a2, b2) -> bool:
     (x1, y1), (x2, y2), (x3, y3), (x4, y4) = a1, b1, a2, b2
@@ -112,7 +107,6 @@ def collinear_overlap(a1, b1, a2, b2) -> bool:
         lo2, hi2 = sorted((y3, y4))
         return min(hi1, hi2) >= max(lo1, lo2)
     return False
-
 
 class Circuit:
     def __init__(self, path: pathlib.Path):
@@ -150,7 +144,6 @@ class Circuit:
             out[idx] = pts
         return out
 
-
 def build_graph(c: Circuit, ports):
     uf = UF()
     for a, b in c.wires:
@@ -180,7 +173,6 @@ def build_graph(c: Circuit, ports):
                         uf.union(pt, a)
                         break
     return uf
-
 
 def driver_audit(circ_path: pathlib.Path, netlist, verbose: bool = False):
     """Every electrical node must contain at most ONE output (driving) port.
@@ -241,7 +233,6 @@ def driver_audit(circ_path: pathlib.Path, netlist, verbose: bool = False):
         if not problems:
             print('  no node has more than one driving port')
     return report
-
 
 def check(circ_path: pathlib.Path, netlist, verbose=False):
     c = Circuit(circ_path)
@@ -304,7 +295,6 @@ def check(circ_path: pathlib.Path, netlist, verbose=False):
             print('    ! ' + p)
     return report
 
-
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -322,7 +312,6 @@ def main() -> int:
         return 1
     print('  OK: every intended net is one connected electrical node, and no two nets are joined')
     return 0
-
 
 if __name__ == '__main__':
     raise SystemExit(main())

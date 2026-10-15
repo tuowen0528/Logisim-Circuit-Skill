@@ -121,7 +121,6 @@ CIRCUIT_ATTRS = """    <a name="appearance" val="logisim_evolution"/>
 APPEARANCE_KINDS = ('Pin', 'Clock', 'Register', 'RAM')
 APPEARANCE_VALUE = 'classic'
 
-
 def check(text: str) -> dict:
     """Report the presence of each project-level element.
 
@@ -143,7 +142,6 @@ def check(text: str) -> dict:
         'pins_without_appearance': count_pins_without_appearance(text),
     }
 
-
 def missing_elements(c: dict) -> list:
     """Which elements are absent. `pins_without_appearance` and `libs` are NOT zero-means-missing."""
     out = [k for k in ('toolbar', 'options', 'mappings', 'circuit_attrs') if c[k] == 0]
@@ -152,7 +150,6 @@ def missing_elements(c: dict) -> list:
     if c['pins_without_appearance'] > 0:
         out.append(f'appearance×{c["pins_without_appearance"]}')
     return out
-
 
 def count_pins_without_appearance(text: str) -> int:
     n = 0
@@ -165,7 +162,6 @@ def count_pins_without_appearance(text: str) -> int:
         if 'name="appearance"' not in body:
             n += 1
     return n
-
 
 def complete(text: str, source: str | None = None) -> str:
     """Splice in every missing project-level element. Circuit content is left byte-identical.
@@ -222,7 +218,6 @@ def complete(text: str, source: str | None = None) -> str:
     text = re.sub(r'<comp\b([^>]*)>(.*?)</comp>', add_appearance, text, flags=re.S)
     return text
 
-
 # ------------------------------------------------------------------------------------------------
 # The single way any generator should write a .circ
 # ------------------------------------------------------------------------------------------------
@@ -255,7 +250,6 @@ def write_circ(path, text: str, source: str | None = '5.0.0') -> pathlib.Path:
     path = pathlib.Path(path)
     path.write_text(completed, encoding='utf-8', newline='\n')
     return path
-
 
 def main() -> int:
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
@@ -308,7 +302,6 @@ def main() -> int:
           f'  ({"未变" if (n_comp_before, n_wire_before) == (n_comp_after, n_wire_after) else "!!! 变了"})')
     print(f'    写入 {dst}')
     return 0
-
 
 if __name__ == '__main__':
     raise SystemExit(main())

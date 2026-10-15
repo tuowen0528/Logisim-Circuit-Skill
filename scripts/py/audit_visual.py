@@ -5,15 +5,15 @@
 
 WHY THIS EXISTS
 
-`rtllib.py` proves the ELECTRICAL topology: no two nets share a coordinate, every sink is reachable,
-widths agree. `seqmodel.py` checks the wire paths it emits. Neither answers the question a human asks
+The electrical checks prove the topology: no two nets share a coordinate, every sink is reachable,
+widths agree. and with Tunnels there are no wire paths to check. Neither answers the question a human asks
 when the canvas opens: **is anything drawn on top of anything else?**
 
 A tunnel-first schematic is connected entirely by LABELS, so a wall of correctly-wired Tunnels can
 still be unreadable - overlapping glyphs, labels running into each other, boxes colliding. Every one of
 those passes an electrical check and fails the reader. That gap is what this tool closes.
 
-WHAT IT MEASURES (all from `references/components.json`, measured out of the shipped jar)
+WHAT IT MEASURES (all from `references/component-catalog.json`, measured out of the shipped jar)
 
     Tunnel    glyph width is 8*len(label)+10 px, height 22 px  <- width DEPENDS ON THE LABEL
     Pin       20 x 20
@@ -57,7 +57,6 @@ TUNNEL_H = 22
 PIN_CHAR_W = 8
 CROWD_GAP = 2
 
-
 def parse(path: pathlib.Path):
     t = path.read_text(encoding='utf-8', errors='replace')
     comps = []
@@ -67,7 +66,6 @@ def parse(path: pathlib.Path):
         attrs = dict(re.findall(r'<a name="([^"]+)" val="([^"]*)"/>', body or ''))
         comps.append({'lib': int(lib), 'loc': (int(x), int(y)), 'name': name, 'attrs': attrs})
     return comps
-
 
 def glyph_box(c, geom):
     """Absolute drawing box for one component, using measured geometry, plus its label box."""
@@ -97,11 +95,9 @@ def glyph_box(c, geom):
             label_box = (x, y - 8, lw, 16)
     return box, label_box
 
-
 def overlap(a, b, gap=0):
     return (a[0] < b[0] + b[2] + gap and b[0] < a[0] + a[2] + gap
             and a[1] < b[1] + b[3] + gap and b[1] < a[1] + a[3] + gap)
-
 
 def audit(path: pathlib.Path, verbose=True):
     import geom
@@ -171,7 +167,6 @@ def audit(path: pathlib.Path, verbose=True):
             print(f'    OK electrically, but {len(soft)} tight spot(s)')
     return report
 
-
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -197,7 +192,6 @@ def main() -> int:
         total_soft = sum(len(r['crowded']) for r in reports)
         print(f'\n  {len(reports)} circuit(s): {total_hard} overlap/label-clash, {total_soft} tight spot(s)')
     return 1 if bad else 0
-
 
 if __name__ == '__main__':
     raise SystemExit(main())

@@ -1,5 +1,5 @@
 {
-  "$comment": "六库组件清单（第一阶段产物）。清单来源为发布产物 PortDump 的 Library.getTools()，并与各 *Library.java 的注册项逐库交叉核对（74=74）。status 的 V/P/U 含义见 references/04-component-inventory.md §2 —— V 仅表示「有实测证据」，不代表该组件属性已枚举完整。",
+  "$comment": "六库组件清单（第一阶段产物）。清单来源为发布产物 PortDump 的 Library.getTools()，并与各 *Library.java 的注册项逐库交叉核对（74=74）。status 的 V/P/U 含义见 references/component-catalog.json §2 —— V 仅表示「有实测证据」，不代表该组件属性已枚举完整。",
   "schema": "logisim-component-index/1",
   "phase": "1-inventory-only",
   "target": {
@@ -49,7 +49,7 @@
           "status": "V",
           "purpose": "Split one bus into named bit groups; the only Wiring component that MERGES nothing - it splits only",
           "evidence": [
-            "references/00-probe-log.md (fanout rotation by facing; spacing legal 1..9, 40 silently dropped; splits-not-merges)"
+            " (fanout rotation by facing; spacing legal 1..9, 40 silently dropped; splits-not-merges)"
           ]
         },
         {
@@ -58,8 +58,8 @@
           "status": "V",
           "purpose": "Circuit input or output terminal",
           "evidence": [
-            "references/00-probe-log.md",
-            "references/03-geometry-layout.md"
+            "",
+            "references/(the measured geometry is in component-catalog.json; query it with compdb)"
           ],
           "known": [
             "type defaults to input",
@@ -83,7 +83,7 @@
           "status": "V",
           "purpose": "Connect nets by LABEL across any distance, with no wire",
           "evidence": [
-            "references/00-probe-log.md sections 32-34"
+            " sections 32-34"
           ],
           "known": [
             "width defaults to 1 bit",
@@ -121,7 +121,7 @@
           "status": "V",
           "purpose": "Fixed value source",
           "evidence": [
-            "references/00-probe-log.md"
+            ""
           ],
           "known": [
             "value defaults to TRUE when omitted"
@@ -185,7 +185,7 @@
           "status": "V",
           "purpose": "Inverter",
           "evidence": [
-            "references/00-probe-log.md"
+            ""
           ],
           "known": [
             "output at loc, input at loc.x-30, box (-30,-10,30,20)"
@@ -197,7 +197,7 @@
           "status": "V",
           "purpose": "Non-inverting driver",
           "evidence": [
-            "references/00-probe-log.md"
+            ""
           ],
           "known": [
             "inputs (-50,-20)/(+20), output at loc"
@@ -209,7 +209,7 @@
           "status": "V",
           "purpose": "Logical AND",
           "evidence": [
-            "references/00-probe-log.md"
+            ""
           ],
           "known": [
             "size 50 default -> inputs (-50,-+20); size=30 -> (-30,-+10); box 50x50"
@@ -221,7 +221,7 @@
           "status": "V",
           "purpose": "Logical OR",
           "evidence": [
-            "references/00-probe-log.md"
+            ""
           ],
           "known": [
             "same geometry as AND"
@@ -233,7 +233,7 @@
           "status": "V",
           "purpose": "Logical NAND",
           "evidence": [
-            "references/00-probe-log.md"
+            ""
           ],
           "known": [
             "same geometry as AND"
@@ -245,7 +245,7 @@
           "status": "V",
           "purpose": "Logical NOR",
           "evidence": [
-            "references/00-probe-log.md"
+            ""
           ],
           "known": [
             "same geometry as AND"
@@ -257,7 +257,7 @@
           "status": "V",
           "purpose": "Logical XOR",
           "evidence": [
-            "references/00-probe-log.md"
+            ""
           ],
           "known": [
             "box 60x50, inputs (-60,-+20)"
@@ -269,7 +269,7 @@
           "status": "V",
           "purpose": "Logical XNOR",
           "evidence": [
-            "references/00-probe-log.md"
+            ""
           ],
           "known": [
             "same geometry as XOR"
@@ -325,7 +325,7 @@
           "status": "V",
           "purpose": "Select one of 2^select data inputs",
           "evidence": [
-            "references/00-probe-log.md"
+            ""
           ],
           "known": [
             "port geometry changes NON-uniformly with select: select=1 -> data at x-30, first dy -10, step 20; select=2 -> x-40, -20, step 10; select=3 -> x-40, -40, step 10; select pin always (x-20,y+20); box 40x60"
@@ -344,7 +344,7 @@
           "status": "V",
           "purpose": "Assert one of 2^select outputs",
           "evidence": [
-            "references/00-probe-log.md"
+            ""
           ],
           "known": [
             "outputs evenly spaced 20px, last at loc.y-10"
@@ -381,7 +381,7 @@
           "purpose": "Ripple-carry addition with carry in/out",
           "evidence": [
             "examples/adder4/adder4.circ (512/512)",
-            "references/00-probe-log.md"
+            ""
           ],
           "known": [
             "A(-40,-10) B(-40,+10) Cin(-20,-20) Sum(loc) Cout(-20,+20)",
@@ -447,7 +447,7 @@
           "purpose": "Magnitude comparison",
           "evidence": [
             "tests/specs/rtl/cmp2.json (16/16)",
-            "references/00-probe-log.md"
+            ""
           ],
           "known": [
             "A(-40,-10) B(-40,+10) >(0,-10) =(0,0) <(0,+10)",
@@ -636,7 +636,7 @@
           "status": "V",
           "purpose": "Edge-triggered single-bit storage",
           "evidence": [
-            "references/00-probe-log.md",
+            "",
             "examples/generated/seq_div2.circ"
           ],
           "known": [
@@ -662,7 +662,7 @@
           "status": "U",
           "purpose": "Edge-triggered JK storage",
           "evidence": [],
-          "note": "XML NAME HAS HYPHENS. seqmodel.py wrongly emits 'J-K Flip-Flop', which Logisim SILENTLY DROPS - measured."
+          "note": "XML NAME HAS HYPHENS. generator.py wrongly emits 'J-K Flip-Flop', which Logisim SILENTLY DROPS - measured."
         },
         {
           "xml_name": "S-R Flip-Flop",
@@ -670,7 +670,7 @@
           "status": "U",
           "purpose": "Edge-triggered SR storage",
           "evidence": [],
-          "note": "XML NAME HAS HYPHENS. seqmodel.py wrongly emits 'S-R Flip-Flop', which Logisim SILENTLY DROPS - measured."
+          "note": "XML NAME HAS HYPHENS. generator.py wrongly emits 'S-R Flip-Flop', which Logisim SILENTLY DROPS - measured."
         },
         {
           "xml_name": "Register",
@@ -718,7 +718,7 @@
           "status": "V",
           "purpose": "Addressable read/write memory",
           "evidence": [
-            "references/00-probe-log.md"
+            ""
           ],
           "known": [
             "A(0,10) WE(0,50) OE(0,60) CK(0,70) Din(0,90) Dout(+240,+90)",
@@ -759,8 +759,8 @@
       "POR": "Power-on Reset"
     },
     "hyphenated_names_the_project_currently_gets_wrong": {
-      "J-K Flip-Flop": "seqmodel.py emits 'J-K Flip-Flop' -> silently dropped (measured)",
-      "S-R Flip-Flop": "seqmodel.py emits 'S-R Flip-Flop' -> silently dropped (measured)"
+      "J-K Flip-Flop": "generator.py emits 'J-K Flip-Flop' -> silently dropped (measured)",
+      "S-R Flip-Flop": "generator.py emits 'S-R Flip-Flop' -> silently dropped (measured)"
     }
   },
   "deferred_to_later_phases": [
