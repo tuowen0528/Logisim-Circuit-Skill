@@ -57,10 +57,39 @@ implementation would agree with the implementation's bugs.
 
 ```powershell
 py scripts\py\generator.py build examples\specs\comb\mux2.json examples\generated\mux2.circ
+py scripts\py\generator.py build spec.json out.circ --layout compact     # tightest clear drawing
+py scripts\py\generator.py build spec.json out.circ --layout zones       # regions pulled apart
+py scripts\py\layout.py modes                                            # print the clearances
 ```
 
 The builder refuses to write a circuit whose placement would be **silently wrong** (see step 3), so a
 non-zero exit here is a real spec/placement problem, not a warning.
+
+**Drawing mode.** `zones` is the default. A spec can also choose, and the CLI overrides the spec:
+
+```json
+"layout": "compact"
+"layout": { "mode": "zones", "vgap": 200, "hgap": 400 }
+```
+
+An unknown mode, or an unknown field in the object form, is refused rather than defaulted. The mode
+cannot change what the circuit computes — the two files differ **only** in their `loc="(x,y)"`
+attributes, which is directly checkable:
+
+```powershell
+# build the same spec twice, then compare with every coordinate masked
+$a = (Get-Content a.circ -Raw) -replace 'loc="\(-?\d+,-?\d+\)"', 'loc="(*,*)"'
+$b = (Get-Content b.circ -Raw) -replace 'loc="\(-?\d+,-?\d+\)"', 'loc="(*,*)"'
+$a -eq $b        # True
+```
+
+Keep each `-replace` in its own assignment: chaining it into one expression
+(`(Get-Content ...) -replace ... -eq (...) -replace ...`) mis-parses and reports `False` on two
+identical files.
+
+Both modes separate every part's **real drawing box** — the component, plus a Pin's label, plus every
+Tunnel glyph on its ports — by a measured minimum clearance, and put every coordinate on the 10 grid.
+`layout.check` runs inside the build, so a drawing that would overlap is refused before it is written.
 
 ## Step 3 — Understand the three silent failure modes it guards
 
